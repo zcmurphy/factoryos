@@ -1,0 +1,2841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FACTORY OS — Equipment Registry</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111419;
+    --surface2: #171c23;
+    --border: #1e2630;
+    --border-bright: #2e3d4f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --text: #c8d8e8;
+    --text-dim: #5a7080;
+    --text-bright: #e8f4ff;
+    --danger: #ff3355;
+    --warning: #ffaa00;
+    --panel-w: 380px;
+  }
+
+  body.light {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8eef4;
+    --border: #d0dae4;
+    --border-bright: #a8bccf;
+    --accent: #0077aa;
+    --accent2: #cc4400;
+    --accent3: #1a7a00;
+    --text: #2c3e50;
+    --text-dim: #7a94a8;
+    --text-bright: #0f1f2e;
+    --danger: #cc1133;
+    --warning: #bb7700;
+  }
+
+  /* Suppress scanline in light mode */
+  body.light::before { display: none; }
+
+  /* Light mode grid dots instead of lines */
+  body.light #viz-container::before {
+    background-image:
+      radial-gradient(circle, #a8bccf 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.5;
+  }
+
+  /* Light mode D3 links */
+  body.light .d3-link { stroke: #a8bccf; }
+
+  /* Light mode card fills (hardcoded in D3, override via CSS attr isn't possible — handled in JS) */
+  body.light .filter-menu { background: #ffffff; }
+  body.light .modal { background: #ffffff; }
+  body.light #tooltip, body.light #factory-tooltip { background: #ffffff; }
+  body.light .detail-input { background: rgba(0,0,0,0.04); color: var(--text-bright); }
+  body.light .detail-input.readonly { background: transparent; }
+  body.light .detail-select option { background: #ffffff; color: #0f1f2e; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,212,255,0.012) 2px,
+      rgba(0,212,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-bright);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 32px; height: 32px;
+    border: 2px solid var(--accent);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    padding: 4px;
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+  .logo-icon span { background: var(--accent); opacity: 0.8; }
+  .logo-icon span:nth-child(2),
+  .logo-icon span:nth-child(4) { opacity: 0.3; }
+  .logo-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 18px;
+    color: var(--text-bright);
+    letter-spacing: 4px;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .header-stats { display: flex; gap: 24px; }
+  .stat { text-align: right; }
+  .stat-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Right detail panel ── */
+  .detail-panel {
+    width: 0;
+    min-width: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.25s cubic-bezier(0.4,0,0.2,1), min-width 0.25s cubic-bezier(0.4,0,0.2,1);
+    flex-shrink: 0;
+  }
+  .detail-panel.open {
+    width: 320px;
+    min-width: 320px;
+  }
+  .detail-panel-inner {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+  .detail-header {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .detail-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .detail-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 3px;
+  }
+  .detail-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .detail-close:hover { color: var(--danger); }
+  .detail-object-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .detail-icon-wrap {
+    width: 40px; height: 40px;
+    border: 1px solid;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    border-radius: 6px;
+  }
+  .detail-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text-bright);
+    line-height: 1.1;
+    flex: 1;
+  }
+  .detail-accent-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .detail-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 0 20px;
+  }
+  .detail-scroll::-webkit-scrollbar { width: 4px; }
+  .detail-scroll::-webkit-scrollbar-track { background: var(--bg); }
+  .detail-scroll::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  /* Section blocks */
+  .detail-section {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+  .detail-section-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .detail-field {
+    margin-bottom: 10px;
+  }
+  .detail-field:last-child { margin-bottom: 0; }
+  .detail-field-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .detail-field-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    color: var(--text-bright);
+    font-weight: 500;
+    line-height: 1.4;
+    min-height: 18px;
+  }
+  .detail-field-val.dim { color: var(--text-dim); font-style: italic; }
+
+  /* Editable fields */
+  .detail-input {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-bright);
+    color: var(--text-bright);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: border-color 0.15s, background 0.15s;
+    outline: none;
+  }
+  .detail-input:focus {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.05);
+  }
+  .detail-textarea {
+    resize: vertical;
+    min-height: 70px;
+    line-height: 1.5;
+  }
+  .detail-select {
+    appearance: none;
+    cursor: pointer;
+  }
+  .detail-select option {
+    background: #1a2233;
+    color: var(--text-bright);
+  }
+
+  /* Status row */
+  .detail-status-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .detail-status-chip {
+    padding: 4px 10px;
+    border: 1px solid;
+    border-radius: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    opacity: 0.45;
+  }
+  .detail-status-chip.active-chip { opacity: 1; }
+
+  /* Badges row */
+  .detail-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  /* Save button */
+  .detail-save-row {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .detail-save-btn {
+    flex: 1;
+    background: rgba(0,212,255,0.1);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 7px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .detail-save-btn:hover { background: rgba(0,212,255,0.2); }
+  .detail-discard-btn {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    padding: 7px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .detail-discard-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .detail-edit-btn {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    padding: 3px 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .detail-edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .detail-edit-btn.active {
+    border-color: var(--warning);
+    color: var(--warning);
+    background: rgba(255,170,0,0.08);
+  }
+
+  /* Read-only state for inputs */
+  .detail-input.readonly {
+    background: transparent;
+    border-color: transparent;
+    padding-left: 0;
+    color: var(--text-bright);
+    cursor: default;
+    pointer-events: none;
+  }
+  .detail-input.readonly:focus { border-color: transparent; background: transparent; }
+  .detail-textarea.readonly { resize: none; }
+
+  /* Status chips non-interactive in readonly */
+  .detail-status-row.readonly .detail-status-chip { cursor: default; pointer-events: none; }
+
+  /* Save row hidden in readonly mode */
+  .detail-save-row { transition: opacity 0.2s; }
+  .detail-save-row.hidden { opacity: 0; pointer-events: none; height: 0; padding: 0; border: none; overflow: hidden; }
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--warning);
+    border-radius: 50%;
+    margin-left: 6px;
+    vertical-align: middle;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .detail-changed-dot.visible { opacity: 1; }
+
+  /* Metadata / readonly row */
+  .detail-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .panel {
+    width: var(--panel-w);
+    min-width: var(--panel-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 0.25s cubic-bezier(0.4,0,0.2,1), min-width 0.25s cubic-bezier(0.4,0,0.2,1);
+    flex-shrink: 0;
+  }
+  .panel.collapsed {
+    width: 36px;
+    min-width: 36px;
+  }
+  .panel.collapsed .panel-title,
+  .panel.collapsed .panel-header-actions,
+  .panel.collapsed .tree-scroll { opacity: 0; pointer-events: none; }
+
+  .panel-header-actions { display: flex; gap: 6px; align-items: center; }
+
+  .panel-collapse-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    line-height: 1;
+    transition: color 0.15s, transform 0.25s;
+    flex-shrink: 0;
+  }
+  .panel-collapse-btn:hover { color: #fff; }
+  .panel.collapsed .panel-collapse-btn { transform: rotate(180deg); }
+
+  .panel-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    min-width: 36px;
+    overflow: hidden;
+  }
+  .panel.collapsed .panel-header {
+    padding: 14px 0;
+    justify-content: center;
+  }
+  .panel-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    padding: 5px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.05); }
+  .btn-primary { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.08); }
+  .btn-primary:hover { background: rgba(0,212,255,0.18); }
+
+  .tree-scroll { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .tree-scroll::-webkit-scrollbar { width: 4px; }
+  .tree-scroll::-webkit-scrollbar-track { background: var(--bg); }
+  .tree-scroll::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  .tree-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+    gap: 4px;
+    border-left: 2px solid transparent;
+  }
+  .tree-row:hover { background: rgba(255,255,255,0.03); }
+  .tree-row.selected { background: rgba(0,212,255,0.07); border-left-color: var(--accent); }
+
+  .tree-toggle {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-dim);
+    font-size: 10px;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+    cursor: pointer;
+  }
+  .tree-toggle.open { transform: rotate(90deg); }
+  .tree-toggle.leaf { opacity: 0; pointer-events: none; }
+
+  .tree-icon { font-size: 13px; flex-shrink: 0; width: 18px; text-align: center; }
+
+  .tree-label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tree-type-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    padding: 1px 5px;
+    border: 1px solid;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .tree-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+  .tree-row:hover .tree-actions { opacity: 1; }
+
+  .icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 5px;
+    font-size: 12px;
+    color: var(--text-dim);
+    transition: color 0.15s;
+    line-height: 1;
+  }
+  .icon-btn:hover { color: var(--accent); }
+  .icon-btn.del:hover { color: var(--danger); }
+
+  .tree-children { display: none; }
+  .tree-children.open { display: block; }
+
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+  .status-active { background: var(--accent3); box-shadow: 0 0 5px var(--accent3); }
+  .status-maintenance { background: var(--warning); box-shadow: 0 0 5px var(--warning); }
+  .status-offline { background: var(--danger); box-shadow: 0 0 5px var(--danger); }
+  .status-standby { background: var(--text-dim); }
+
+  .badge-system { color: #00d4ff; border-color: #00d4ff; }
+  .badge-machine { color: #ff6b35; border-color: #ff6b35; }
+  .badge-component { color: #39ff14; border-color: #39ff14; }
+  .badge-sensor { color: #ffaa00; border-color: #ffaa00; }
+  .badge-tool { color: #b06eff; border-color: #b06eff; }
+  .badge-station { color: #ff6eb4; border-color: #ff6eb4; }
+  .badge-computer { color: #38bdf8; border-color: #38bdf8; }
+
+  .viz-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+  .viz-toolbar {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .viz-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); letter-spacing: 2px; flex: 1; }
+
+  /* ── Filter dropdown ── */
+  .filter-dropdown-wrap {
+    position: relative;
+  }
+  .filter-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .filter-dropdown-btn.filter-active {
+    border-color: #a78bfa !important;
+    color: #a78bfa !important;
+    background: rgba(167,139,250,0.1) !important;
+  }
+  .filter-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #111827;
+    border: 1px solid var(--border-bright);
+    min-width: 180px;
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .filter-menu.open { display: flex; }
+  .filter-menu-item {
+    padding: 9px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s;
+    color: var(--text);
+    border-left: 2px solid transparent;
+  }
+  .filter-menu-item:hover { background: rgba(255,255,255,0.05); color: var(--text-bright); }
+  .filter-menu-item.active {
+    color: #a78bfa;
+    border-left-color: #a78bfa;
+    background: rgba(167,139,250,0.08);
+  }
+  .filter-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+  }
+  .filter-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  #viz-container { flex: 1; overflow: hidden; position: relative; }
+  #viz-svg { width: 100%; height: 100%; }
+
+  #viz-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  #tooltip {
+    position: fixed;
+    background: #0e1520;
+    border: 1px solid var(--border-bright);
+    width: 300px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    transform: translateY(6px);
+    z-index: 1000;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  #tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  #tt-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 14px 10px;
+  }
+  #tt-icon-wrap {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  #tt-head-info { flex: 1; min-width: 0; }
+  #tt-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text-bright);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 5px;
+  }
+  #tt-type-row { display: flex; gap: 6px; align-items: center; }
+  #tt-type-badge, #tt-status-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  #tt-status-badge {
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  #tt-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-bright), transparent);
+    margin: 0 14px;
+  }
+
+  #tt-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 10px 14px;
+  }
+  .tt-cell {
+    padding: 6px 0;
+  }
+  .tt-cell-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8.5px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .tt-cell-val {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #tt-desc-wrap {
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid var(--border);
+    padding: 10px 14px 12px;
+  }
+  #tt-desc-wrap .tt-cell-label { margin-bottom: 5px; }
+  #tt-desc {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  #tt-line-stats {
+    border-top: 1px solid var(--border);
+    padding-bottom: 12px;
+    background: rgba(255,255,255,0.015);
+  }
+  #tt-line-stats .tt-cell-label {
+    padding-top: 10px;
+  }
+  #tt-line-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding: 0 14px;
+  }
+  .tt-line-stat-cell {
+    text-align: center;
+    background: rgba(255,255,255,0.04);
+    border-radius: 5px;
+    padding: 7px 4px 5px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .tt-line-stat-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .tt-line-stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ── Factory summary tooltip ── */
+  #factory-tooltip {
+    position: fixed;
+    background: #0a0f18;
+    border: 1px solid var(--border-bright);
+    border-top: 2px solid var(--accent);
+    width: 340px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    transform: translateY(6px);
+    z-index: 1000;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(0,212,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  #factory-tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  #ftt-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 12px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.07), transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  #ftt-icon {
+    font-size: 28px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  #ftt-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--text-bright);
+    line-height: 1.1;
+  }
+  #ftt-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  #ftt-totals {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .ftt-total-cell {
+    background: #0d1520;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .ftt-total-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 20px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .ftt-total-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  #ftt-lines {
+    padding: 10px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ftt-line {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ftt-line::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    border-radius: 6px 0 0 6px;
+  }
+  .ftt-line-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-left: 8px;
+  }
+  .ftt-line-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-bright);
+  }
+  .ftt-line-total {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+  .ftt-line-stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    padding-left: 8px;
+  }
+  .ftt-stat {
+    text-align: center;
+    background: rgba(255,255,255,0.03);
+    border-radius: 4px;
+    padding: 5px 2px;
+  }
+  .ftt-stat-val {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .ftt-stat-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: none; align-items: center; justify-content: center;
+    z-index: 500; backdrop-filter: blur(3px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface2);
+    border: 1px solid var(--border-bright);
+    width: 480px; max-width: 95vw;
+    position: relative;
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-title { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--accent); letter-spacing: 2px; }
+  .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 10px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+  .field input, .field select, .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border-bright);
+    color: var(--text-bright);
+    padding: 8px 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    resize: vertical;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field select option { background: var(--surface2); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 200px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 2px;
+    gap: 12px;
+  }
+  .empty-icon { font-size: 40px; opacity: 0.3; }
+
+  .d3-link { fill: none; stroke: #2e3d4f; stroke-width: 1.5; opacity: 0.7; }
+  .d3-node { cursor: pointer; }
+  .d3-node text { font-family: 'Rajdhani', sans-serif; font-weight: 500; pointer-events: none; }
+
+  .btn-active {
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
+    background: rgba(245,158,11,0.12) !important;
+  }
+  .physical-panel-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; padding: 1px 5px;
+    border: 1px solid #f59e0b;
+    color: #f59e0b;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><span></span><span></span><span></span><span></span></div>
+    <div>
+      <div class="logo-text">FACTORY OS</div>
+      <div class="logo-sub">Equipment Registry v2.4</div>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Objects</div></div>
+    <div class="stat"><div class="stat-val" id="stat-active" style="color:var(--accent3)">0</div><div class="stat-label">Active</div></div>
+    <div class="stat"><div class="stat-val" id="stat-maint" style="color:var(--warning)">0</div><div class="stat-label">Maint.</div></div>
+    <div class="stat"><div class="stat-val" id="stat-offline" style="color:var(--danger)">0</div><div class="stat-label">Offline</div></div>
+    <button id="theme-toggle-btn" onclick="toggleTheme()" style="
+      background:none; border:1px solid var(--border-bright); color:var(--text-dim);
+      font-family:'Share Tech Mono',monospace; font-size:14px; padding:4px 10px;
+      cursor:pointer; border-radius:3px; transition:all 0.15s; margin-left:12px;
+      line-height:1;" title="Toggle light/dark mode">☀</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="panel" id="left-panel">
+    <div class="panel-header">
+      <span class="panel-title">// Object Registry</span>
+      <div class="panel-header-actions">
+        <button class="btn btn-primary" onclick="openModal('add', null)">+ ADD ROOT</button>
+      </div>
+    </div>
+    <div class="tree-scroll" id="tree-container"></div>
+  </div>
+
+  <div class="viz-area">
+    <div class="viz-toolbar">
+      <button class="panel-collapse-btn" id="panel-collapse-btn" onclick="toggleLeftPanel()" title="Toggle registry panel">◀</button>
+      <span class="viz-label">// <span id="view-mode-label">PROCESS VIEW</span> — <span id="layout-label">TREE L→R</span></span>
+      <button class="btn" id="view-toggle-btn" onclick="toggleViewMode()">🏢 PHYSICAL VIEW</button>
+      <button class="btn" onclick="resetZoom()">⊕ RESET VIEW</button>
+      <button class="btn" onclick="toggleLayout()">⇄ TOGGLE LAYOUT</button>
+
+      <!-- Filter dropdown -->
+      <div class="filter-dropdown-wrap" id="filter-wrap">
+        <button class="btn filter-dropdown-btn" id="filter-btn" onclick="toggleFilterMenu()">
+          ◈ FILTER VIEW <span id="filter-label">ALL</span>
+        </button>
+        <div class="filter-menu" id="filter-menu">
+          <div class="filter-menu-item active" data-filter="all" onclick="setFilter('all')">
+            <span class="filter-dot" style="background:#5a7080"></span> ALL OBJECTS
+          </div>
+          <div class="filter-menu-divider"></div>
+          <div class="filter-menu-item" data-filter="machine" onclick="setFilter('machine')">
+            <span class="filter-dot" style="background:#ff6b35"></span> MACHINE VIEW
+          </div>
+          <div class="filter-menu-item" data-filter="sensor" onclick="setFilter('sensor')">
+            <span class="filter-dot" style="background:#ffaa00"></span> SENSOR VIEW
+          </div>
+          <div class="filter-menu-item" data-filter="computer" onclick="setFilter('computer')">
+            <span class="filter-dot" style="background:#38bdf8"></span> COMPUTER VIEW
+          </div>
+          <div class="filter-menu-item" data-filter="metrology" onclick="setFilter('metrology')">
+            <span class="filter-dot" style="background:#a78bfa"></span> METROLOGY VIEW
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="exportJSON()">↓ EXPORT JSON</button>
+    </div>
+    <div id="viz-container"><svg id="viz-svg"></svg></div>
+  </div>
+
+  <!-- Right detail panel -->
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-panel-inner">
+      <div class="detail-header">
+        <div class="detail-accent-bar" id="dp-accent-bar"></div>
+        <div class="detail-header-top">
+          <span class="detail-title">// Object Detail</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="detail-edit-btn" id="dp-edit-btn" onclick="toggleDetailEditMode()" title="Edit">✎ EDIT</button>
+            <button class="detail-close" onclick="closeDetailPanel()" title="Close">✕</button>
+          </div>
+        </div>
+        <div class="detail-object-header">
+          <div class="detail-icon-wrap" id="dp-icon-wrap">
+            <span id="dp-icon"></span>
+          </div>
+          <div>
+            <div class="detail-name" id="dp-name"></div>
+            <div class="detail-badges" id="dp-badges"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-scroll">
+
+        <!-- Status -->
+        <div class="detail-section">
+          <div class="detail-section-label">Status</div>
+          <div class="detail-status-row" id="dp-status-row"></div>
+        </div>
+
+        <!-- Identity -->
+        <div class="detail-section">
+          <div class="detail-section-label">Identity</div>
+          <div class="detail-field">
+            <div class="detail-field-label">Name</div>
+            <input class="detail-input" id="dp-f-name" type="text">
+          </div>
+          <div class="detail-meta-grid">
+            <div class="detail-field">
+              <div class="detail-field-label">Asset ID</div>
+              <input class="detail-input" id="dp-f-assetid" type="text" placeholder="e.g. MCH-001">
+            </div>
+            <div class="detail-field">
+              <div class="detail-field-label">Type</div>
+              <select class="detail-input detail-select" id="dp-f-type">
+                <option value="system">System</option>
+                <option value="machine">Machine</option>
+                <option value="component">Component</option>
+                <option value="sensor">Sensor</option>
+                <option value="tool">Tool</option>
+                <option value="station">Station</option>
+                <option value="computer">Computer</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location -->
+        <div class="detail-section">
+          <div class="detail-section-label">Location</div>
+          <div class="detail-field">
+            <div class="detail-field-label">Physical Location</div>
+            <input class="detail-input" id="dp-f-location" type="text" placeholder="e.g. Bay A – Cell 1">
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Parent Object</div>
+            <select class="detail-input detail-select" id="dp-f-parent">
+              <option value="">— None (Root) —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="detail-section">
+          <div class="detail-section-label">Purpose / Description</div>
+          <div class="detail-field">
+            <textarea class="detail-input detail-textarea" id="dp-f-desc" placeholder="Describe the function or purpose..."></textarea>
+          </div>
+        </div>
+
+        <!-- Metadata (read-only) -->
+        <div class="detail-section">
+          <div class="detail-section-label">Metadata</div>
+          <div class="detail-meta-grid">
+            <div class="detail-field">
+              <div class="detail-field-label">Object ID</div>
+              <div class="detail-field-val" id="dp-meta-id"></div>
+            </div>
+            <div class="detail-field">
+              <div class="detail-field-label">Direct Children</div>
+              <div class="detail-field-val" id="dp-meta-children"></div>
+            </div>
+            <div class="detail-field">
+              <div class="detail-field-label">Total Descendants</div>
+              <div class="detail-field-val" id="dp-meta-descendants"></div>
+            </div>
+            <div class="detail-field">
+              <div class="detail-field-label">Process Line</div>
+              <div class="detail-field-val" id="dp-meta-line"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="detail-save-row">
+        <button class="detail-discard-btn" onclick="discardDetailChanges()">DISCARD</button>
+        <button class="detail-save-btn" onclick="saveDetailChanges()">
+          SAVE CHANGES <span class="detail-changed-dot" id="dp-changed-dot"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="tooltip">
+  <div id="tt-header">
+    <div id="tt-icon-wrap"><span id="tt-icon"></span></div>
+    <div id="tt-head-info">
+      <div id="tt-name"></div>
+      <div id="tt-type-row">
+        <span id="tt-type-badge"></span>
+        <span id="tt-status-badge"></span>
+      </div>
+    </div>
+  </div>
+  <div id="tt-divider"></div>
+  <div id="tt-grid">
+    <div class="tt-cell"><div class="tt-cell-label">ASSET ID</div><div class="tt-cell-val" id="tt-id"></div></div>
+    <div class="tt-cell"><div class="tt-cell-label">LOCATION</div><div class="tt-cell-val" id="tt-loc"></div></div>
+    <div class="tt-cell"><div class="tt-cell-label">PARENT</div><div class="tt-cell-val" id="tt-parent"></div></div>
+    <div class="tt-cell"><div class="tt-cell-label">CHILDREN</div><div class="tt-cell-val" id="tt-children"></div></div>
+  </div>
+  <div id="tt-desc-wrap">
+    <div class="tt-cell-label">PURPOSE</div>
+    <div id="tt-desc"></div>
+  </div>
+  <div id="tt-line-stats" style="display:none">
+    <div class="tt-cell-label" style="padding: 0 14px 6px; margin-top:10px;">LINE SUMMARY</div>
+    <div id="tt-line-stat-grid"></div>
+  </div>
+</div>
+
+<!-- Factory summary tooltip -->
+<div id="factory-tooltip">
+  <div id="ftt-header">
+    <span id="ftt-icon">🏗</span>
+    <div id="ftt-title-wrap">
+      <div id="ftt-title"></div>
+      <div id="ftt-subtitle">Factory Overview</div>
+    </div>
+  </div>
+  <div id="ftt-totals"></div>
+  <div id="ftt-lines"></div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">// ADD OBJECT</span>
+      <button class="icon-btn del" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="field">
+        <label>Object Name *</label>
+        <input type="text" id="f-name" placeholder="e.g. CNC Mill #3">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Type</label>
+          <select id="f-type">
+            <option value="system">System</option>
+            <option value="machine">Machine</option>
+            <option value="component">Component</option>
+            <option value="sensor">Sensor</option>
+            <option value="tool">Tool</option>
+            <option value="station">Station</option>
+            <option value="computer">Computer</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="active">Active</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="offline">Offline</option>
+            <option value="standby">Standby</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Parent Object</label>
+        <select id="f-parent"><option value="">— Root (No Parent) —</option></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Location</label>
+          <input type="text" id="f-location" placeholder="e.g. Bay A, Floor 2">
+        </div>
+        <div class="field">
+          <label>Asset ID</label>
+          <input type="text" id="f-asset-id" placeholder="e.g. AST-0042">
+        </div>
+      </div>
+      <div class="field">
+        <label>Purpose / Description</label>
+        <textarea id="f-desc" rows="3" placeholder="Describe the function or purpose..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-primary" onclick="saveObject()">SAVE OBJECT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════
+let objects = [
+  { id:'o1', name:'Production Line Alpha', type:'system', status:'active', parentId:null, location:'Building A', assetId:'SYS-001', desc:'Primary production line for precision metal components. Handles raw stock intake through finished part output.' },
+  { id:'o2', name:'CNC Mill Station', type:'station', status:'active', parentId:'o1', location:'Bay A', assetId:'STA-011', desc:'High-speed CNC milling station with 5-axis capability for complex part geometries.' },
+  { id:'o3', name:'CNC Mill #1', type:'machine', status:'active', parentId:'o2', location:'Bay A – Cell 1', assetId:'MCH-021', desc:'Haas VF-4 vertical machining center. Primary workhorse for aluminum and steel milling operations.' },
+  { id:'o4', name:'Spindle Assembly', type:'component', status:'maintenance', parentId:'o3', location:'Bay A – Cell 1', assetId:'CMP-031', desc:'Main spindle assembly rated at 12,000 RPM. Undergoing scheduled bearing replacement.' },
+  { id:'o5', name:'Vibration Sensor VSM-01', type:'sensor', status:'active', parentId:'o4', location:'Spindle Housing', assetId:'SEN-041', desc:'Triaxial MEMS accelerometer monitoring spindle vibration for predictive maintenance alerts.' },
+  { id:'o6', name:'Tool Changer ATC-12', type:'component', status:'active', parentId:'o3', location:'Bay A – Cell 1', assetId:'CMP-032', desc:'24-position carousel automatic tool changer. Sub-second tool swap capability.' },
+  { id:'o7', name:'End Mill EM-8mm', type:'tool', status:'active', parentId:'o6', location:'ATC Slot 3', assetId:'TL-051', desc:'8mm 4-flute carbide end mill for finishing passes on aluminum housings.' },
+  { id:'o8', name:'Coolant Temp Sensor', type:'sensor', status:'standby', parentId:'o3', location:'Coolant Circuit', assetId:'SEN-042', desc:'PT100 RTD monitoring coolant temperature. Triggers alarm above 65°C.' },
+  { id:'o9', name:'Lathe Station', type:'station', status:'active', parentId:'o1', location:'Bay B', assetId:'STA-012', desc:'Turning station for rotational components including shafts, bushings, and flanges.' },
+  { id:'o10', name:'CNC Lathe #2', type:'machine', status:'offline', parentId:'o9', location:'Bay B – Cell 2', assetId:'MCH-022', desc:'Mazak Quick Turn 350. Currently offline for gearbox overhaul. Expected return: 72h.' },
+  { id:'o11', name:'Quality Control', type:'station', status:'active', parentId:'o1', location:'Bay C', assetId:'STA-013', desc:'Final inspection station with CMM and optical measurement systems.' },
+  { id:'o12', name:'CMM Probe System', type:'machine', status:'active', parentId:'o11', location:'Bay C', assetId:'MCH-031', desc:'Hexagon Global CMM. Automated inspection routines with ±0.5μm accuracy.' },
+
+  // ── PRODUCTION LINE BETA – Semiconductor ──
+  { id:'b1', name:'Production Line Beta', type:'system', status:'active', parentId:null, location:'Building B – Cleanroom', assetId:'SYS-002', desc:'ISO Class 5 cleanroom semiconductor fabrication line. Produces 300mm silicon wafers through photolithography, etch, deposition, and CMP processes.' },
+
+  // Photolithography Station
+  { id:'b2', name:'Photolithography Station', type:'station', status:'active', parentId:'b1', location:'Bay D – Clean Zone 1', assetId:'STA-021', desc:'EUV and DUV photolithography station. Transfers circuit patterns onto silicon wafers using light-sensitive photoresist.' },
+  { id:'b3', name:'ASML EUV Scanner', type:'machine', status:'active', parentId:'b2', location:'Bay D – Pod 1', assetId:'MCH-041', desc:'ASML NXE:3400C extreme ultraviolet lithography system. 13.5nm wavelength, enables sub-7nm node patterning at up to 170 wafers/hour.' },
+  { id:'b4', name:'Reticle Stage', type:'component', status:'active', parentId:'b3', location:'EUV Scanner – Optical Column', assetId:'CMP-051', desc:'Ultra-precision magnetic levitation reticle stage. Positions photomask with sub-nanometer accuracy using 6-DOF control.' },
+  { id:'b5', name:'Wafer Stage', type:'component', status:'active', parentId:'b3', location:'EUV Scanner – Wafer Chuck', assetId:'CMP-052', desc:'Dual-stage wafer positioning system with interferometric alignment. Overlay accuracy <1nm.' },
+  { id:'b6', name:'Alignment Laser Sensor', type:'sensor', status:'active', parentId:'b3', location:'EUV Scanner – Metrology Frame', assetId:'SEN-061', desc:'HeNe laser interferometer for real-time stage position feedback. Resolution: 0.01nm.' },
+  { id:'b7', name:'Photoresist Coater', type:'machine', status:'active', parentId:'b2', location:'Bay D – Pod 2', assetId:'MCH-042', desc:'Tokyo Electron CLEAN TRACK spin-coating system. Deposits uniform photoresist films at 2–100nm thickness.' },
+  { id:'b8', name:'Spin Chuck', type:'component', status:'active', parentId:'b7', location:'Coater Bowl', assetId:'CMP-053', desc:'Vacuum-chuck wafer holder. Rotates at up to 6000 RPM for centrifugal resist spreading.' },
+
+  // Etch Station
+  { id:'b9', name:'Etch Station', type:'station', status:'active', parentId:'b1', location:'Bay E – Clean Zone 2', assetId:'STA-022', desc:'Dry and wet etch station for precise material removal. Supports ICP-RIE, CCP, and wet chemical processes.' },
+  { id:'b10', name:'ICP-RIE Etcher', type:'machine', status:'active', parentId:'b9', location:'Bay E – Pod 1', assetId:'MCH-043', desc:'Lam Research Kiyo inductively-coupled plasma reactive-ion etcher. High-aspect-ratio silicon and dielectric etch at atomic-layer precision.' },
+  { id:'b11', name:'RF Power Generator', type:'component', status:'active', parentId:'b10', location:'Etcher – Power Cabinet', assetId:'CMP-054', desc:'13.56 MHz RF generator, 3kW output. Drives plasma excitation in the etch chamber. Impedance auto-matched.' },
+  { id:'b12', name:'Mass Flow Controller', type:'component', status:'active', parentId:'b10', location:'Etcher – Gas Panel', assetId:'CMP-055', desc:'Thermal MFC controlling SF₆, Cl₂, HBr, and O₂ precursor gas flows. Accuracy: ±0.5% FS.' },
+  { id:'b13', name:'Chamber Pressure Sensor', type:'sensor', status:'active', parentId:'b10', location:'Etch Chamber Wall', assetId:'SEN-062', desc:'Capacitance manometer monitoring chamber pressure 1–1000 mTorr. Response time <10ms.' },
+  { id:'b14', name:'Wet Bench WB-02', type:'machine', status:'maintenance', parentId:'b9', location:'Bay E – Pod 2', assetId:'MCH-044', desc:'Automated wet chemical bench for HF oxide strip and SC1/SC2 RCA clean sequences. Robotic wafer handling.' },
+
+  // Deposition Station
+  { id:'b15', name:'Deposition Station', type:'station', status:'active', parentId:'b1', location:'Bay F – Clean Zone 3', assetId:'STA-023', desc:'Thin-film deposition station supporting ALD, CVD, and PVD processes for gate oxides, metals, and dielectrics.' },
+  { id:'b16', name:'ALD Reactor ALD-7', type:'machine', status:'active', parentId:'b15', location:'Bay F – Pod 1', assetId:'MCH-045', desc:'Applied Materials Centura ALD system. Deposits HfO₂ gate dielectric and TiN barrier layers with Ångstrom-level control.' },
+  { id:'b17', name:'Precursor Delivery System', type:'component', status:'active', parentId:'b16', location:'ALD – Chemical Cabinet', assetId:'CMP-056', desc:'Heated ampoule precursor delivery for TDMAH and TiCl₄. Maintains 90°C bubbler temperature for consistent vapor pressure.' },
+  { id:'b18', name:'Substrate Heater', type:'component', status:'active', parentId:'b16', location:'ALD – Process Chamber', assetId:'CMP-057', desc:'Resistive wafer heater with PID control. Maintains 200–400°C chuck temperature for ALD window compliance.' },
+  { id:'b19', name:'QCM Thickness Monitor', type:'sensor', status:'active', parentId:'b16', location:'ALD – Deposition Chamber', assetId:'SEN-063', desc:'Quartz crystal microbalance for in-situ film thickness monitoring. Resolution: 0.1Å per cycle.' },
+  { id:'b20', name:'PVD Sputter Tool', type:'machine', status:'standby', parentId:'b15', location:'Bay F – Pod 2', assetId:'MCH-046', desc:'Novellus Inova PVD system for Cu seed layer and TaN diffusion barrier deposition. 300mm wafer compatible.' },
+
+  // CMP Station
+  { id:'b21', name:'CMP Station', type:'station', status:'active', parentId:'b1', location:'Bay G – Clean Zone 4', assetId:'STA-024', desc:'Chemical mechanical planarization station. Achieves global wafer planarity within 5nm for multi-layer interconnect.' },
+  { id:'b22', name:'CMP Tool CMP-3', type:'machine', status:'active', parentId:'b21', location:'Bay G – Pod 1', assetId:'MCH-047', desc:'Applied Materials Reflexion LK Prime CMP system. STI, ILD, and Cu interconnect polish with closed-loop endpoint detection.' },
+  { id:'b23', name:'Polishing Head', type:'component', status:'active', parentId:'b22', location:'CMP – Platen Assembly', assetId:'CMP-058', desc:'7-zone pressure-controlled carrier head. Independent zone control enables uniform material removal across 300mm wafer.' },
+  { id:'b24', name:'Slurry Delivery System', type:'component', status:'active', parentId:'b22', location:'CMP – Chemical Cabinet', assetId:'CMP-059', desc:'Point-of-use slurry mixing and dispensing for oxide and Cu slurries. Includes pH and particle-size monitoring.' },
+  { id:'b25', name:'Eddy Current Sensor', type:'sensor', status:'active', parentId:'b22', location:'CMP – Platen', assetId:'SEN-064', desc:'In-situ metal film thickness sensor for Cu CMP endpoint detection. Triggers ±5Å of target removal.' },
+
+  // Metrology & Inspection
+  { id:'b26', name:'Metrology & Inspection', type:'station', status:'active', parentId:'b1', location:'Bay H – Metrology Suite', assetId:'STA-025', desc:'Inline and offline metrology suite for CD, overlay, film thickness, and defect inspection after each process step.' },
+  { id:'b27', name:'CD-SEM Tool', type:'machine', status:'active', parentId:'b26', location:'Bay H – Pod 1', assetId:'MCH-048', desc:'Hitachi CG6300 critical-dimension scanning electron microscope. Measures linewidths and pitches at sub-2nm resolution.' },
+  { id:'b28', name:'Electron Column', type:'component', status:'active', parentId:'b27', location:'CD-SEM – Column', assetId:'CMP-060', desc:'Field-emission electron gun with electromagnetic focusing lenses. Landing energy 200eV–1keV for low-damage imaging.' },
+  { id:'b29', name:'Ellipsometer', type:'machine', status:'active', parentId:'b26', location:'Bay H – Pod 2', assetId:'MCH-049', desc:'KLA SpectraFilm spectroscopic ellipsometer. Measures oxide, nitride, and poly film thickness 1–5000nm range.' },
+  { id:'b30', name:'Defect Inspection System', type:'machine', status:'active', parentId:'b26', location:'Bay H – Pod 3', assetId:'MCH-050', desc:'KLA Surfscan SP7 dark-field unpatterned wafer inspection. Detects particles and scratches down to 19nm PSL equivalent.' },
+  // ── Computers (Alpha Line) ──
+  { id:'c1', name:'CNC Mill Controller', type:'computer', status:'active', parentId:'o3', location:'Bay A – Cell 1, Control Cabinet', assetId:'CPU-001', desc:'Fanuc 31i-B5 CNC controller running 5-axis machining programs. Manages G-code execution, axis interpolation, and real-time servo feedback at 1ms cycle time.' },
+  { id:'c2', name:'Lathe CNC Controller', type:'computer', status:'offline', parentId:'o10', location:'Bay B – Cell 2, Control Cabinet', assetId:'CPU-002', desc:'Mazatrol SmoothC CNC controller for the CNC Lathe #2. Currently offline alongside the parent machine during gearbox overhaul. Scheduled for firmware update on return.' },
+  { id:'c3', name:'CMM Inspection PC', type:'computer', status:'active', parentId:'o12', location:'Bay C – Metrology Desk', assetId:'CPU-003', desc:'Dell Precision 5860 workstation running PC-DMIS 2023 inspection software. Executes automated CMM measurement routines and generates SPC reports.' },
+
+  // ── Computers (Beta Line) ──
+  { id:'c4', name:'EUV Scanner Host PC', type:'computer', status:'active', parentId:'b3', location:'Bay D – EUV Control Rack', assetId:'CPU-011', desc:'ASML TwinScan host controller running NXE lithography recipe management. Handles wafer job scheduling, dose/focus correction algorithms, and overlay error compensation in real time.' },
+  { id:'c5', name:'Coater Track Controller', type:'computer', status:'active', parentId:'b7', location:'Bay D – Pod 2, Control Console', assetId:'CPU-012', desc:'TEL CLEAN TRACK embedded controller. Manages resist dispense volume, spin speed profiles, bake plate temperatures, and wafer transfer sequencing.' },
+  { id:'c6', name:'Etch Process Controller', type:'computer', status:'active', parentId:'b10', location:'Bay E – Pod 1, Rack 3', assetId:'CPU-013', desc:'Lam Research RELIANT process control computer. Executes plasma etch recipes, monitors endpoint detection signals, and auto-adjusts RF power and gas flows via closed-loop control.' },
+  { id:'c7', name:'ALD Recipe Server', type:'computer', status:'active', parentId:'b16', location:'Bay F – Pod 1, Equipment Bay', assetId:'CPU-014', desc:'Applied Materials Brooks Automation controller managing ALD cycle sequencing, precursor pulse timing, and purge steps. Logs per-wafer thickness data to the fab MES.' },
+  { id:'c8', name:'CMP Endpoint Computer', type:'computer', status:'active', parentId:'b22', location:'Bay G – Pod 1, Control Cabinet', assetId:'CPU-015', desc:'Applied Materials SmartStop endpoint detection workstation. Processes eddy current and optical signals in real time to determine Cu removal endpoint within ±5Å of target.' },
+  { id:'c9', name:'CD-SEM Workstation', type:'computer', status:'active', parentId:'b27', location:'Bay H – Pod 1, Instrument Desk', assetId:'CPU-016', desc:'Hitachi EM-CAL workstation running SEM Navigator software. Automates wafer recipe execution, image analysis, and CD measurement data upload to the fab yield management system.' },
+];
+
+let selectedId = null;
+let layoutMode = 'tree';
+let viewMode = 'process';
+let filterMode = 'all';
+let laneMap = new Map();
+let expandedIds = new Set(['o1','o2','o3','o9','o10','o11','o12','b1','b2','b3','b7','b9','b10','b15','b16','b21','b22','b26','b27']);
+
+const ICONS = { system:'🏭', machine:'⚙️', component:'🔩', sensor:'📡', tool:'🔧', station:'🗂️', computer:'🖥️' };
+const TYPE_COLORS = { system:'#00d4ff', machine:'#ff6b35', component:'#39ff14', sensor:'#ffaa00', tool:'#b06eff', station:'#ff6eb4', computer:'#38bdf8' };
+const STATUS_COLORS = { active:'#39ff14', maintenance:'#ffaa00', offline:'#ff3355', standby:'#5a7080' };
+
+function genId() { return 'o' + Date.now(); }
+
+// ═══════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════
+function updateStats() {
+  document.getElementById('stat-total').textContent = objects.length;
+  document.getElementById('stat-active').textContent = objects.filter(o=>o.status==='active').length;
+  document.getElementById('stat-maint').textContent = objects.filter(o=>o.status==='maintenance').length;
+  document.getElementById('stat-offline').textContent = objects.filter(o=>o.status==='offline').length;
+}
+
+// ═══════════════════════════════════════
+// TREE
+// ═══════════════════════════════════════
+function getChildren(pid) { return objects.filter(o=>o.parentId===pid); }
+function getRoots() { return objects.filter(o=>!o.parentId); }
+
+function renderTreePanel() {
+  if (viewMode === 'physical') { renderPhysicalPanel(); return; }
+  const c = document.getElementById('tree-container');
+  c.innerHTML = '';
+  const roots = getRoots();
+  if (!roots.length) {
+    c.innerHTML = '<div class="empty-state"><div class="empty-icon">⚙</div><div>NO OBJECTS REGISTERED</div></div>';
+    return;
+  }
+  roots.forEach(r => c.appendChild(buildNode(r, 0)));
+}
+
+function buildNode(obj, depth) {
+  const kids = getChildren(obj.id);
+  const expanded = expandedIds.has(obj.id);
+  const selected = selectedId === obj.id;
+
+  const wrap = document.createElement('div');
+
+  const row = document.createElement('div');
+  row.className = 'tree-row' + (selected ? ' selected' : '');
+  row.style.paddingLeft = (12 + depth * 18) + 'px';
+
+  const tog = document.createElement('span');
+  tog.className = 'tree-toggle' + (kids.length ? (expanded ? ' open' : '') : ' leaf');
+  tog.textContent = '▶';
+  tog.onclick = e => { e.stopPropagation(); expandedIds.has(obj.id) ? expandedIds.delete(obj.id) : expandedIds.add(obj.id); renderTreePanel(); };
+
+  const icon = document.createElement('span');
+  icon.className = 'tree-icon';
+  icon.textContent = ICONS[obj.type] || '◆';
+
+  const dot = document.createElement('span');
+  dot.className = 'status-dot status-' + obj.status;
+
+  const lbl = document.createElement('span');
+  lbl.className = 'tree-label';
+  lbl.textContent = obj.name;
+
+  const badge = document.createElement('span');
+  badge.className = 'tree-type-badge badge-' + obj.type;
+  badge.textContent = obj.type;
+
+  const acts = document.createElement('div');
+  acts.className = 'tree-actions';
+
+  const makeBtn = (txt, cls, fn) => {
+    const b = document.createElement('button');
+    b.className = 'icon-btn' + (cls ? ' ' + cls : '');
+    b.textContent = txt;
+    b.onclick = e => { e.stopPropagation(); fn(); };
+    return b;
+  };
+  acts.append(
+    makeBtn('+', '', () => openModal('add', obj.id)),
+    makeBtn('✎', '', () => openModal('edit', obj.id)),
+    makeBtn('✕', 'del', () => deleteObj(obj.id))
+  );
+
+  row.append(tog, icon, dot, lbl, badge, acts);
+  row.onclick = () => selectObj(obj.id);
+  row.ondblclick = (e) => { e.stopPropagation(); focusNodeInViz(obj.id); };
+
+  const childWrap = document.createElement('div');
+  childWrap.className = 'tree-children' + (expanded ? ' open' : '');
+  kids.forEach(k => childWrap.appendChild(buildNode(k, depth + 1)));
+
+  wrap.append(row, childWrap);
+  return wrap;
+}
+
+function selectObj(id) {
+  selectedId = id;
+  // Update left panel selection highlight only
+  renderTreePanel();
+  // Update viz highlights in-place — no redraw, no view reset
+  d3.selectAll('.vnode').attr('class', d => 'vnode' + (d && d.data && d.data.id === selectedId ? ' vnode-selected' : ''));
+  d3.selectAll('.card-body').each(function(d) {
+    if (!d || !d.data) return;
+    const isSelected = d.data.id === selectedId;
+    const lane = laneMap.get(d.data.id) || (viewMode === 'physical' ? '#f59e0b' : '#2e3d4f');
+    d3.select(this)
+      .attr('stroke', isSelected ? '#ffffff' : lane)
+      .attr('stroke-width', isSelected ? 2 : 1)
+      .attr('stroke-opacity', isSelected ? 1 : 0.5);
+  });
+  openDetailPanel(id);
+}
+
+function focusNodeInViz(id) {
+  selectObj(id);
+  if (!svgSel || !zoomBeh || !gSel) return;
+
+  // Find the node's DOM group by scanning D3 data
+  let targetNode = null;
+  d3.selectAll('.vnode').each(function(d) {
+    if (d && d.data && d.data.id === id) targetNode = this;
+  });
+  if (!targetNode) return;
+
+  const container = document.getElementById('viz-container');
+  const W = container.clientWidth;
+  const H = container.clientHeight;
+  const CW = 160, CH = 62;
+
+  // Get the node's bounding box in SVG space
+  const bbox = targetNode.getBBox();
+  const nodeCX = bbox.x + bbox.width / 2;
+  const nodeCY = bbox.y + bbox.height / 2;
+
+  // Current group transform (translate applied by drawHorizontal)
+  const gTransform = gSel.attr('transform') || '';
+  const match = gTransform.match(/translate\(([^,]+),([^)]+)\)/);
+  const gTX = match ? parseFloat(match[1]) : 0;
+  const gTY = match ? parseFloat(match[2]) : 0;
+
+  // Target scale — zoom in nicely but not too close
+  const targetScale = 1.4;
+
+  // Compute translation so node center lands at viewport center
+  const tx = W / 2 - targetScale * (nodeCX + gTX);
+  const ty = H / 2 - targetScale * (nodeCY + gTY);
+
+  svgSel.transition().duration(600).ease(d3.easeCubicInOut)
+    .call(zoomBeh.transform, d3.zoomIdentity.translate(tx, ty).scale(targetScale));
+}
+
+function deleteObj(id) {
+  const toDelete = new Set();
+  (function collect(oid) { toDelete.add(oid); getChildren(oid).forEach(c => collect(c.id)); })(id);
+  objects = objects.filter(o => !toDelete.has(o.id));
+  if (toDelete.has(selectedId)) { selectedId = null; closeDetailPanel(); }
+  updateStats(); renderTreePanel(); renderViz();
+}
+
+// ═══════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════
+function openModal(mode, ctxId) {
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.add('open');
+  const ps = document.getElementById('f-parent');
+  ps.innerHTML = '<option value="">— Root (No Parent) —</option>';
+  objects.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.id;
+    opt.textContent = ICONS[o.type] + ' ' + o.name;
+    ps.appendChild(opt);
+  });
+
+  if (mode === 'add') {
+    document.getElementById('modal-title').textContent = '// ADD OBJECT';
+    document.getElementById('edit-id').value = '';
+    ['f-name','f-location','f-asset-id','f-desc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-type').value = 'machine';
+    document.getElementById('f-status').value = 'active';
+    if (ctxId) ps.value = ctxId;
+  } else {
+    const obj = objects.find(o => o.id === ctxId);
+    if (!obj) return;
+    document.getElementById('modal-title').textContent = '// EDIT OBJECT';
+    document.getElementById('edit-id').value = obj.id;
+    document.getElementById('f-name').value = obj.name;
+    document.getElementById('f-type').value = obj.type;
+    document.getElementById('f-status').value = obj.status;
+    document.getElementById('f-location').value = obj.location || '';
+    document.getElementById('f-asset-id').value = obj.assetId || '';
+    document.getElementById('f-desc').value = obj.desc || '';
+    ps.value = obj.parentId || '';
+  }
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(); });
+
+function saveObject() {
+  const name = document.getElementById('f-name').value.trim();
+  const nf = document.getElementById('f-name');
+  if (!name) { nf.style.borderColor = 'var(--danger)'; return; }
+  nf.style.borderColor = '';
+
+  const editId = document.getElementById('edit-id').value;
+  const data = {
+    name,
+    type: document.getElementById('f-type').value,
+    status: document.getElementById('f-status').value,
+    parentId: document.getElementById('f-parent').value || null,
+    location: document.getElementById('f-location').value.trim(),
+    assetId: document.getElementById('f-asset-id').value.trim(),
+    desc: document.getElementById('f-desc').value.trim(),
+  };
+
+  if (editId) {
+    const i = objects.findIndex(o => o.id === editId);
+    if (i !== -1) objects[i] = { ...objects[i], ...data };
+  } else {
+    data.id = genId();
+    objects.push(data);
+    if (data.parentId) expandedIds.add(data.parentId);
+  }
+
+  closeModal();
+  updateStats(); renderTreePanel(); renderViz();
+}
+
+// ═══════════════════════════════════════
+// D3 VISUALIZATION
+// ═══════════════════════════════════════
+let svgSel, gSel, zoomBeh;
+
+function buildHierTree() {
+  const roots = getRoots();
+  if (!roots.length) return null;
+  function bld(obj) {
+    return { ...obj, children: getChildren(obj.id).map(bld) };
+  }
+  if (roots.length === 1) return bld(roots[0]);
+  return { id:'__root__', name:'Factory', type:'system', status:'active', desc:'Virtual root', assetId:'', location:'',
+    children: roots.map(bld) };
+}
+
+function renderViz() {
+  const container = document.getElementById('viz-container');
+  const el = document.getElementById('viz-svg');
+  d3.select(el).selectAll('*').remove();
+
+  const W = container.clientWidth, H = container.clientHeight;
+
+  const hierData = viewMode === 'physical' ? buildPhysicalD3Tree() : buildHierTree();
+  if (!hierData || !objects.length) return;
+
+  svgSel = d3.select(el).attr('width', W).attr('height', H);
+  zoomBeh = d3.zoom().scaleExtent([0.08, 5]).on('zoom', e => gSel.attr('transform', e.transform));
+  svgSel.call(zoomBeh);
+  gSel = svgSel.append('g');
+
+  if (layoutMode === 'radial') drawRadial(W, H, hierData);
+  else drawHorizontal(W, H, hierData);
+
+  // Auto-fit after draw
+  setTimeout(() => { fitView(W, H); applyFilter(); }, 50);
+}
+
+function fitView(W, H) {
+  if (!gSel || !svgSel || !zoomBeh) return;
+  try {
+    const bounds = gSel.node().getBBox();
+    if (!bounds.width || !bounds.height) return;
+    const pad = 40;
+    const scaleX = (W - pad*2) / bounds.width;
+    const scaleY = (H - pad*2) / bounds.height;
+    const scale = Math.min(scaleX, scaleY, 1.2);
+    const tx = (W - bounds.width * scale) / 2 - bounds.x * scale;
+    const ty = (H - bounds.height * scale) / 2 - bounds.y * scale;
+    svgSel.transition().duration(500)
+      .call(zoomBeh.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+  } catch(e) {}
+}
+
+function drawRadial(W, H, hierData) {
+  const radius = Math.min(W, H) * 0.38;
+  const root = d3.hierarchy(hierData);
+  d3.tree().size([2 * Math.PI, radius]).separation((a,b) => (a.parent===b.parent ? 1.4 : 2.8) / a.depth)(root);
+
+  gSel.attr('transform', `translate(${W/2},${H/2})`);
+
+  // Links
+  gSel.append('g').selectAll('path').data(root.links()).join('path')
+    .attr('class','d3-link')
+    .attr('d', d3.linkRadial().angle(d=>d.x).radius(d=>d.y));
+
+  // Nodes
+  const node = gSel.append('g').selectAll('g').data(root.descendants()).join('g')
+    .attr('class','vnode')
+    .attr('transform', d => `rotate(${d.x*180/Math.PI-90}) translate(${d.y},0)`);
+
+  const getR = d => d.depth === 0 ? 14 : Math.max(5, 13 - d.depth * 2.2);
+
+  node.append('circle').attr('class','outer')
+    .attr('r', getR)
+    .attr('fill', d => TYPE_COLORS[d.data.type] || '#aaa')
+    .attr('fill-opacity', 0.12)
+    .attr('stroke', d => d.data.id === selectedId ? '#fff' : STATUS_COLORS[d.data.status] || '#aaa')
+    .attr('stroke-width', d => d.data.id === selectedId ? 3 : 2)
+    .on('click', (e,d) => { if(d.data.id!=='__root__') selectObj(d.data.id); })
+    .on('mouseover', (e,d) => showTT(d.data))
+    .on('mouseout', hideTT);
+
+  node.append('circle').attr('class','inner')
+    .attr('r', d => Math.max(2, getR(d)*0.42))
+    .attr('fill', d => STATUS_COLORS[d.data.status] || '#aaa')
+    .attr('opacity', 0.9).attr('pointer-events','none');
+
+  node.append('text').attr('class','node-label')
+    .attr('dy','0.31em')
+    .attr('x', d => d.x < Math.PI === !d.children ? getR(d)+5 : -(getR(d)+5))
+    .attr('text-anchor', d => d.x < Math.PI === !d.children ? 'start' : 'end')
+    .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
+    .style('font-size', d => d.depth===0 ? '13px' : '11px')
+    .style('fill', d => d.data.id===selectedId ? '#fff' : 'var(--text)')
+    .text(d => d.depth===0 && d.data.id==='__root__' ? '' : d.data.name);
+}
+
+function drawHorizontal(W, H, hierData) {
+  const root = d3.hierarchy(hierData);
+
+  // Card dimensions
+  const CW = 160, CH = 62, CR = 8; // card width, height, corner radius
+  const COL_GAP = 60; // horizontal gap between card columns
+  const ROW_GAP = 18; // vertical gap between cards
+
+  d3.tree().nodeSize([CH + ROW_GAP, CW + COL_GAP])(root);
+
+  let minX=Infinity, maxX=-Infinity;
+  root.each(d => { minX=Math.min(minX,d.x); maxX=Math.max(maxX,d.x); });
+
+  const padLeft = 20;
+  const offsetY = H/2 - (maxX+minX)/2;
+  gSel.attr('transform', `translate(${padLeft}, ${offsetY})`);
+
+  // Lane colors — physical mode uses building-based amber palette, process uses production line colors
+  const rootChildren = root.children || [];
+  const PROCESS_LANE_COLORS = ['#00d4ff','#ff6b35','#b06eff','#39ff14'];
+  const PHYSICAL_LANE_COLORS = ['#f59e0b','#fb923c','#fbbf24','#f97316'];
+  const LANE_COLORS = viewMode === 'physical' ? PHYSICAL_LANE_COLORS : PROCESS_LANE_COLORS;
+
+  laneMap = new Map();
+  rootChildren.forEach((child, i) => {
+    child.each(d => laneMap.set(d.data.id, LANE_COLORS[i % LANE_COLORS.length]));
+  });
+  const rootKey = root.data.id;
+  if (rootKey !== '__root__' && rootKey !== '__facility__') laneMap.set(rootKey, LANE_COLORS[0]);
+  const isPhysRoot = d => d.data.id === '__facility__' || d.data.id === '__root__';
+
+  // Helper: get node color based on view mode
+  const getNodeColor = d => {
+    if (viewMode === 'physical') {
+      return PHYS_COLORS[d.data.physType] || '#94a3b8';
+    }
+    return TYPE_COLORS[d.data.type] || '#aaa';
+  };
+  const getLane = d => laneMap.get(d.data.id) || (viewMode === 'physical' ? '#f59e0b33' : '#2e3d4f');
+
+  // Subtle lane background bands
+  const isMultiRoot = root.data.id === '__root__' || root.data.id === '__facility__';
+  if (isMultiRoot && rootChildren.length > 1) {
+    const bandG = gSel.append('g').attr('class','lane-bands');
+    rootChildren.forEach((child, i) => {
+      let cMin=Infinity, cMax=-Infinity, cMaxY=-Infinity;
+      child.each(d => { cMin=Math.min(cMin,d.x); cMax=Math.max(cMax,d.x); cMaxY=Math.max(cMaxY,d.y); });
+      const laneColor = LANE_COLORS[i % LANE_COLORS.length];
+      bandG.append('rect')
+        .attr('x', -padLeft)
+        .attr('y', cMin - CH/2 - 10)
+        .attr('width', cMaxY + CW + 10)
+        .attr('height', cMax - cMin + CH + 20)
+        .attr('fill', laneColor).attr('opacity', 0.025).attr('rx', 8);
+      bandG.append('text')
+        .attr('x', 2).attr('y', (cMin+cMax)/2 + 4)
+        .style('font-family','Share Tech Mono, monospace').style('font-size','8px')
+        .style('fill', laneColor).style('opacity','0.45').style('letter-spacing','2px')
+        .attr('writing-mode','tb').attr('transform',`rotate(-90, 2, ${(cMin+cMax)/2})`)
+        .text(viewMode === 'physical' ? child.data.name.slice(0,8).toUpperCase() : 'LINE ' + String.fromCharCode(65+i));
+    });
+  }
+
+  // Links
+  gSel.append('g').selectAll('path').data(root.links()).join('path')
+    .attr('class','d3-link')
+    .attr('stroke', d => getLane(d.target))
+    .attr('stroke-opacity', 0.4)
+    .attr('stroke-width', 1.5)
+    .attr('d', d => {
+      const sx = d.source.y + CW, sy = d.source.x;
+      const tx = d.target.y,       ty = d.target.x;
+      const mx = (sx + tx) / 2;
+      return `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`;
+    });
+
+  // Node groups
+  const node = gSel.append('g').selectAll('g').data(root.descendants()).join('g')
+    .attr('class', d => 'vnode' + (d.data.id===selectedId ? ' vnode-selected' : ''))
+    .attr('transform', d => `translate(${d.y},${d.x - CH/2})`)
+    .style('cursor','pointer');
+
+  // ── Card shadow / glow ──
+  node.append('rect')
+    .attr('x', 1).attr('y', 3)
+    .attr('width', CW).attr('height', CH).attr('rx', CR)
+    .attr('fill', d => getLane(d)).attr('opacity', d => d.data.id===selectedId ? 0.18 : 0.06)
+    .attr('pointer-events','none');
+
+  // ── Card body ──
+  node.append('rect').attr('class','card-body')
+    .attr('width', CW).attr('height', CH).attr('rx', CR)
+    .attr('fill', d => lightMode
+      ? (viewMode === 'physical' && d.data.physType !== 'object' ? '#f5f8fc' : '#ffffff')
+      : (viewMode === 'physical' && d.data.physType !== 'object' ? '#131a12' : '#12181f'))
+    .attr('stroke', d => d.data.id===selectedId ? '#ffffff' : getLane(d))
+    .attr('stroke-width', d => d.data.id===selectedId ? 2 : 1)
+    .attr('stroke-opacity', d => d.data.id===selectedId ? 1 : 0.5)
+    .attr('pointer-events','none');
+
+  // ── Colored top accent strip ──
+  node.append('rect')
+    .attr('x', CR).attr('y', 0)
+    .attr('width', CW - CR*2).attr('height', 3)
+    .attr('fill', d => getNodeColor(d))
+    .attr('rx', 1).attr('pointer-events','none');
+
+  // ── Icon circle ──
+  const iconCX = 22, iconCY = CH/2;
+  node.append('circle')
+    .attr('cx', iconCX).attr('cy', iconCY).attr('r', 14)
+    .attr('fill', d => getNodeColor(d))
+    .attr('fill-opacity', 0.12)
+    .attr('stroke', d => getNodeColor(d))
+    .attr('stroke-width', 1).attr('stroke-opacity', 0.4)
+    .attr('pointer-events','none');
+
+  node.append('text')
+    .attr('x', iconCX).attr('y', iconCY)
+    .attr('text-anchor','middle').attr('dominant-baseline','central')
+    .style('font-size','13px').attr('pointer-events','none')
+    .text(d => {
+      if (d.data.id === '__root__' || d.data.id === '__facility__') return '🏗';
+      return d.data.icon || ICONS[d.data.type] || '◆';
+    });
+
+  // ── Status dot — only for real objects ──
+  node.filter(d => d.data.status != null).append('circle')
+    .attr('class', 'status-dot-viz')
+    .attr('cx', CW - 10).attr('cy', 10).attr('r', 4)
+    .attr('fill', d => STATUS_COLORS[d.data.status] || '#aaa')
+    .attr('filter', d => d.data.status==='active' ? 'url(#glow)' : '')
+    .attr('pointer-events','none');
+
+  // ── Object name ──
+  node.each(function(d) {
+    const g = d3.select(this);
+    const isFacility = d.data.id === '__facility__' || d.data.id === '__root__';
+    const name = isFacility ? 'FACTORY' : d.data.name;
+    const textX = 42, maxW = CW - 48;
+    const words = name.split(' ');
+    let line1 = '', line2 = '', testLine = '', lineNum = 1;
+    words.forEach(word => {
+      testLine = testLine ? testLine + ' ' + word : word;
+      if (testLine.length * 7 > maxW && lineNum === 1) {
+        line1 = testLine.replace(' '+word,'');
+        testLine = word; lineNum = 2;
+      }
+    });
+    if (lineNum === 1) { line1 = testLine; line2 = ''; }
+    else { line2 = testLine; }
+    const maxChars = Math.floor(maxW / 7);
+    if (line1.length > maxChars) line1 = line1.slice(0, maxChars-1) + '…';
+    if (line2.length > maxChars) line2 = line2.slice(0, maxChars-1) + '…';
+
+    const yBase = line2 ? CH/2 - 9 : CH/2 - 3;
+    g.append('text')
+      .attr('class', 'card-name-line1')
+      .attr('x', textX).attr('y', yBase)
+      .attr('dominant-baseline','middle')
+      .style('font-family','Rajdhani, sans-serif')
+      .style('font-size', d.depth<=1 ? '12px' : '11px')
+      .style('font-weight','600')
+      .style('fill', d.data.id===selectedId ? (lightMode ? '#000' : '#fff') : (lightMode ? '#1a2a3a' : '#e8f4ff'))
+      .attr('pointer-events','none')
+      .text(line1);
+    if (line2) {
+      g.append('text')
+        .attr('class', 'card-name-line2')
+        .attr('x', textX).attr('y', yBase + 14)
+        .attr('dominant-baseline','middle')
+        .style('font-family','Rajdhani, sans-serif')
+        .style('font-size', d.depth<=1 ? '12px' : '11px')
+        .style('font-weight','600')
+        .style('fill', d.data.id===selectedId ? (lightMode ? '#000' : '#fff') : (lightMode ? '#1a2a3a' : '#e8f4ff'))
+        .attr('pointer-events','none')
+        .text(line2);
+    }
+  });
+
+  // ── Bottom label: type+assetId for objects, physType for location nodes ──
+  node.filter(d => d.data.id !== '__root__' && d.data.id !== '__facility__').append('text')
+    .attr('class', 'card-bottom-label')
+    .attr('x', 42).attr('y', CH - 10)
+    .attr('dominant-baseline','middle')
+    .style('font-family','Share Tech Mono, monospace')
+    .style('font-size','8.5px')
+    .style('fill', d => getNodeColor(d))
+    .style('opacity','0.75')
+    .style('letter-spacing','0.5px')
+    .attr('pointer-events','none')
+    .text(d => {
+      if (viewMode === 'physical' && d.data.physType !== 'object') {
+        return (d.data.physType || '').toUpperCase();
+      }
+      const t = (d.data.type||'').toUpperCase();
+      const a = d.data.assetId ? ' · ' + d.data.assetId : '';
+      return t + a;
+    });
+
+  // ── Invisible hit-area rect on top ──
+  node.append('rect').attr('class','hit-area')
+    .attr('width', CW).attr('height', CH).attr('rx', CR)
+    .attr('fill', 'transparent')
+    .attr('stroke', 'none')
+    .on('click', (event, d) => {
+      if (d.data.id !== '__root__' && d.data.id !== '__facility__' && d.data.physType !== 'building' && d.data.physType !== 'zone' && d.data.physType !== 'cell') {
+        selectObj(d.data.id);
+      }
+    })
+    .on('mouseenter', (event, d) => {
+      if (d.data.id === '__facility__') showFactoryTT();
+      else if (d.data.id === '__root__') showFactoryTT();
+      else showTT(d.data);
+    })
+    .on('mouseleave', () => hideTT());
+
+  // Add SVG filter for glow effect
+  const defs = svgSel.append('defs');
+  const filter = defs.append('filter').attr('id','glow').attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
+  filter.append('feGaussianBlur').attr('stdDeviation','2').attr('result','blur');
+  filter.append('feMerge').selectAll('feMergeNode').data(['blur','SourceGraphic']).join('feMergeNode').attr('in', d=>d);
+}
+
+function resetZoom() {
+  const container = document.getElementById('viz-container');
+  fitView(container.clientWidth, container.clientHeight);
+}
+
+function toggleLeftPanel() {
+  const panel = document.getElementById('left-panel');
+  const btn = document.getElementById('panel-collapse-btn');
+  const collapsed = panel.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '▶' : '◀';
+}
+
+// ═══════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════
+let lightMode = false;
+
+function toggleTheme() {
+  lightMode = !lightMode;
+  document.body.classList.toggle('light', lightMode);
+  const btn = document.getElementById('theme-toggle-btn');
+  btn.textContent = lightMode ? '☾' : '☀';
+  btn.style.color = lightMode ? 'var(--accent)' : 'var(--text-dim)';
+  // Re-render viz to update hardcoded card fills, preserving zoom position
+  const saved = gSel ? gSel.attr('transform') : null;
+  renderViz();
+  if (saved && gSel) {
+    gSel.attr('transform', saved);
+    if (svgSel && zoomBeh) {
+      const t = d3.zoomTransform(svgSel.node());
+      svgSel.call(zoomBeh.transform, d3.zoomIdentity
+        .translate(t.x, t.y).scale(t.k));
+    }
+  }
+  applyFilter();
+}
+
+// ═══════════════════════════════════════
+// FILTER VIEW
+// ═══════════════════════════════════════
+
+// Metrology types — machines/stations used for measurement
+const METROLOGY_ASSET_IDS = new Set([
+  'MCH-031','MCH-048','MCH-049','MCH-050', // CMM, CD-SEM, Ellipsometer, Defect Inspection
+  'STA-013','STA-025',                       // Quality Control, Metrology & Inspection stations
+]);
+const METROLOGY_KEYWORDS = /metrology|inspection|cmm|sem|ellipso|defect|probe|measurement|qcm/i;
+
+function isMetrology(obj) {
+  if (METROLOGY_ASSET_IDS.has(obj.assetId)) return true;
+  if (METROLOGY_KEYWORDS.test(obj.name) || METROLOGY_KEYWORDS.test(obj.desc || '')) return true;
+  return false;
+}
+
+function nodeMatchesFilter(obj) {
+  if (filterMode === 'all') return true;
+  if (filterMode === 'metrology') return isMetrology(obj);
+  return obj.type === filterMode;
+}
+
+function toggleFilterMenu() {
+  document.getElementById('filter-menu').classList.toggle('open');
+}
+
+function setFilter(mode) {
+  filterMode = mode;
+  document.getElementById('filter-menu').classList.remove('open');
+
+  // Update menu item active states
+  document.querySelectorAll('.filter-menu-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.filter === mode);
+  });
+
+  // Update button label and active style
+  const labels = { all: 'ALL', machine: 'MACHINE', sensor: 'SENSOR', computer: 'COMPUTER', metrology: 'METROLOGY' };
+  document.getElementById('filter-label').textContent = labels[mode] || mode.toUpperCase();
+  document.getElementById('filter-btn').classList.toggle('filter-active', mode !== 'all');
+
+  applyFilter();
+}
+
+function applyFilter() {
+  d3.selectAll('.vnode').each(function(d) {
+    if (!d || !d.data) return;
+    const id = d.data.id;
+    if (id === '__root__' || id === '__facility__') { d3.select(this).style('opacity', 1); return; }
+    // Physical location nodes always visible
+    if (d.data.physType && d.data.physType !== 'object') { d3.select(this).style('opacity', 0.9); return; }
+    // Find the real object
+    const obj = objects.find(o => o.id === id) || d.data;
+    const match = nodeMatchesFilter(obj);
+    d3.select(this).style('opacity', match ? 1 : 0.12);
+  });
+}
+
+// Close filter menu when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('filter-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('filter-menu').classList.remove('open');
+  }
+});
+
+function toggleLayout() {
+  layoutMode = layoutMode === 'radial' ? 'tree' : 'radial';
+  document.getElementById('layout-label').textContent = layoutMode === 'radial' ? 'RADIAL' : 'TREE L→R';
+  renderViz();
+}
+
+// ═══════════════════════════════════════
+// VIEW MODE TOGGLE
+// ═══════════════════════════════════════
+const PHYS_COLORS = {
+  facility: '#f59e0b',  // amber  — top level
+  building: '#fb923c',  // orange — building
+  zone:     '#a78bfa',  // violet — bay/zone
+  cell:     '#34d399',  // emerald— cell/pod
+  object:   '#94a3b8',  // slate  — leaf objects
+};
+
+function toggleViewMode() {
+  viewMode = viewMode === 'process' ? 'physical' : 'process';
+  const btn = document.getElementById('view-toggle-btn');
+  const label = document.getElementById('view-mode-label');
+  if (viewMode === 'physical') {
+    btn.textContent = '⚙ PROCESS VIEW';
+    btn.classList.add('btn-active');
+    label.textContent = 'PHYSICAL VIEW';
+  } else {
+    btn.textContent = '🏢 PHYSICAL VIEW';
+    btn.classList.remove('btn-active');
+    label.textContent = 'PROCESS VIEW';
+  }
+  selectedId = null;
+  renderTreePanel();
+  renderViz();
+}
+
+// ── Parse a location string into [building, zone, cell] parts ──
+function parseLocation(loc) {
+  if (!loc) return { building: 'Unassigned', zone: null, cell: null };
+  const str = loc.trim();
+
+  // Patterns: "Building A", "Bay A – Cell 1", "Building B – Cleanroom", "Bay D – Clean Zone 1", etc.
+  // Split on ' – ' or ', '
+  const parts = str.split(/\s*[–-]\s*|\s*,\s*/).map(s => s.trim()).filter(Boolean);
+
+  // Determine building from first token containing "Building"
+  let building = null, zone = null, cell = null;
+
+  if (/^building/i.test(parts[0])) {
+    building = parts[0];
+    zone = parts[1] || null;
+    cell = parts[2] || null;
+  } else if (/^bay/i.test(parts[0])) {
+    // Bay lives in a building — infer from object's production line
+    building = 'Factory Floor';
+    zone = parts[0];
+    cell = parts[1] || null;
+  } else if (/cleanroom/i.test(str)) {
+    building = 'Building B – Cleanroom';
+    zone = parts[1] || null;
+    cell = parts[2] || null;
+  } else {
+    building = 'Factory Floor';
+    zone = parts[0] !== building ? parts[0] : null;
+    cell = parts[1] || null;
+  }
+
+  return { building, zone, cell };
+}
+
+// ── Build a virtual physical hierarchy from location strings ──
+function buildPhysicalHierTree() {
+  // Use a map to accumulate nodes: facility > building > zone > cell > objects
+  const facilityNode = {
+    id: '__facility__', name: 'FACTORY', physType: 'facility',
+    icon: '🏗', desc: 'Top-level facility containing all buildings and production areas.',
+    children: []
+  };
+
+  const buildingMap = new Map(); // building name → node
+  const zoneMap     = new Map(); // building+zone → node
+
+  objects.forEach(obj => {
+    const { building, zone, cell } = parseLocation(obj.location);
+
+    // Building level
+    const bKey = building || 'Unassigned';
+    if (!buildingMap.has(bKey)) {
+      const bNode = {
+        id: '__bld__' + bKey, name: bKey, physType: 'building',
+        icon: '🏢', desc: `Physical building: ${bKey}`,
+        children: []
+      };
+      buildingMap.set(bKey, bNode);
+      facilityNode.children.push(bNode);
+    }
+    const bNode = buildingMap.get(bKey);
+
+    // Zone level (Bay, Clean Zone, etc.)
+    if (zone) {
+      const zKey = bKey + '||' + zone;
+      if (!zoneMap.has(zKey)) {
+        const zNode = {
+          id: '__zone__' + zKey, name: zone, physType: 'zone',
+          icon: '📍', desc: `Zone / bay: ${zone} in ${bKey}`,
+          children: []
+        };
+        zoneMap.set(zKey, zNode);
+        bNode.children.push(zNode);
+      }
+      const zNode = zoneMap.get(zKey);
+
+      // Cell / sub-location level
+      if (cell) {
+        const cKey = zKey + '||' + cell;
+        if (!zoneMap.has(cKey)) {
+          const cNode = {
+            id: '__cell__' + cKey, name: cell, physType: 'cell',
+            icon: '📦', desc: `Cell / sub-location: ${cell}`,
+            children: []
+          };
+          zoneMap.set(cKey, cNode);
+          zNode.children.push(cNode);
+        }
+        zoneMap.get(cKey).children.push({
+          ...obj, physType: 'object', icon: ICONS[obj.type] || '◆', children: []
+        });
+      } else {
+        zNode.children.push({
+          ...obj, physType: 'object', icon: ICONS[obj.type] || '◆', children: []
+        });
+      }
+    } else {
+      bNode.children.push({
+        ...obj, physType: 'object', icon: ICONS[obj.type] || '◆', children: []
+      });
+    }
+  });
+
+  return facilityNode;
+}
+
+// ── Render the left panel in physical mode ──
+function renderPhysicalPanel() {
+  const c = document.getElementById('tree-container');
+  c.innerHTML = '';
+
+  const physTree = buildPhysicalHierTree();
+  const physExpandedIds = new Set(['__facility__', ...physTree.children.map(b => b.id)]);
+
+  function buildPhysNode(node, depth) {
+    const kids = node.children || [];
+    const isExpanded = physExpandedIds.has(node.id);
+    const wrap = document.createElement('div');
+
+    const row = document.createElement('div');
+    row.className = 'tree-row' + (selectedId === node.id ? ' selected' : '');
+    row.style.paddingLeft = (12 + depth * 18) + 'px';
+
+    const tog = document.createElement('span');
+    tog.className = 'tree-toggle' + (kids.length ? (isExpanded ? ' open' : '') : ' leaf');
+    tog.textContent = '▶';
+    tog.onclick = e => {
+      e.stopPropagation();
+      physExpandedIds.has(node.id) ? physExpandedIds.delete(node.id) : physExpandedIds.add(node.id);
+      c.innerHTML = '';
+      physTree.children.forEach(b => c.appendChild(buildPhysNode(b, 0)));
+    };
+
+    const icon = document.createElement('span');
+    icon.className = 'tree-icon';
+    icon.textContent = node.icon || '◆';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'tree-label';
+    lbl.textContent = node.name;
+    lbl.style.color = node.physType === 'object'
+      ? (TYPE_COLORS[node.type] || 'var(--text-bright)')
+      : '#e8f4ff';
+
+    const badge = document.createElement('span');
+    if (node.physType === 'object') {
+      badge.className = 'tree-type-badge badge-' + node.type;
+      badge.textContent = node.type;
+    } else {
+      badge.className = 'physical-panel-badge';
+      badge.textContent = node.physType;
+    }
+
+    row.append(tog, icon, lbl, badge);
+    if (node.physType === 'object') {
+      const dot = document.createElement('span');
+      dot.className = 'status-dot status-' + node.status;
+      row.insertBefore(dot, badge);
+      row.onclick = () => { selectedId = node.id; renderPhysicalPanel(); };
+    }
+
+    const childWrap = document.createElement('div');
+    childWrap.className = 'tree-children' + (isExpanded ? ' open' : '');
+    kids.forEach(k => childWrap.appendChild(buildPhysNode(k, depth + 1)));
+    wrap.append(row, childWrap);
+    return wrap;
+  }
+
+  physTree.children.forEach(b => c.appendChild(buildPhysNode(b, 0)));
+}
+
+// ── Build the D3 hierarchy for physical view ──
+function buildPhysicalD3Tree() {
+  const physTree = buildPhysicalHierTree();
+  // Convert to d3-compatible nested structure (children already embedded)
+  function clean(node) {
+    return {
+      id: node.id, name: node.name, physType: node.physType,
+      icon: node.icon, type: node.type || null, status: node.status || null,
+      assetId: node.assetId || null, location: node.location || null,
+      desc: node.desc || null,
+      children: (node.children || []).map(clean)
+    };
+  }
+  return clean(physTree);
+}
+
+// ═══════════════════════════════════════
+// RIGHT DETAIL PANEL
+// ═══════════════════════════════════════
+let detailObjId = null;
+let detailDirty = false;
+let detailEditMode = false;
+
+function openDetailPanel(id) {
+  const obj = objects.find(o => o.id === id);
+  if (!obj) return;
+  detailObjId = id;
+  detailDirty = false;
+  detailEditMode = false;
+  populateDetailPanel(obj);
+  setDetailEditMode(false);
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetailPanel() {
+  document.getElementById('detail-panel').classList.remove('open');
+  detailObjId = null;
+  detailDirty = false;
+  detailEditMode = false;
+}
+
+function toggleDetailEditMode() {
+  setDetailEditMode(!detailEditMode);
+}
+
+function setDetailEditMode(on) {
+  detailEditMode = on;
+  const btn = document.getElementById('dp-edit-btn');
+  const saveRow = document.querySelector('.detail-save-row');
+  const statusRow = document.getElementById('dp-status-row');
+  const inputs = document.querySelectorAll('#detail-panel .detail-input');
+
+  btn.textContent = on ? '✎ EDITING' : '✎ EDIT';
+  btn.classList.toggle('active', on);
+
+  inputs.forEach(el => {
+    if (on) el.classList.remove('readonly');
+    else el.classList.add('readonly');
+  });
+
+  statusRow.classList.toggle('readonly', !on);
+  saveRow.classList.toggle('hidden', !on);
+
+  if (!on) setDetailDirty(false);
+}
+
+function populateDetailPanel(obj) {
+  const typeColor = TYPE_COLORS[obj.type] || '#aaa';
+  const statusColor = STATUS_COLORS[obj.status] || '#aaa';
+
+  // Accent bar
+  document.getElementById('dp-accent-bar').style.background =
+    `linear-gradient(90deg, ${typeColor}, ${typeColor}44, transparent)`;
+
+  // Icon
+  const iconWrap = document.getElementById('dp-icon-wrap');
+  iconWrap.style.borderColor = typeColor + '66';
+  iconWrap.style.background = typeColor + '15';
+  document.getElementById('dp-icon').textContent = ICONS[obj.type] || '◆';
+
+  // Name
+  document.getElementById('dp-name').textContent = obj.name;
+
+  // Badges
+  document.getElementById('dp-badges').innerHTML = `
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border:1px solid ${typeColor}55;color:${typeColor};background:${typeColor}15;letter-spacing:1px;">${(obj.type||'').toUpperCase()}</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;border:1px solid ${statusColor}55;color:${statusColor};background:${statusColor}15;letter-spacing:1px;">${(obj.status||'').toUpperCase()}</span>
+  `;
+
+  // Status chips
+  const statuses = ['active','maintenance','offline','standby'];
+  document.getElementById('dp-status-row').innerHTML = statuses.map(s => {
+    const sc = STATUS_COLORS[s];
+    const isActive = obj.status === s;
+    return `<div class="detail-status-chip ${isActive ? 'active-chip' : ''}"
+      style="border-color:${sc};color:${sc};background:${isActive ? sc+'22' : 'transparent'}"
+      onclick="setDetailStatus('${s}')">${s.toUpperCase()}</div>`;
+  }).join('');
+
+  // Identity fields
+  document.getElementById('dp-f-name').value = obj.name || '';
+  document.getElementById('dp-f-assetid').value = obj.assetId || '';
+  document.getElementById('dp-f-type').value = obj.type || 'machine';
+
+  // Parent dropdown
+  const parentSel = document.getElementById('dp-f-parent');
+  parentSel.innerHTML = '<option value="">— None (Root) —</option>';
+  objects.filter(o => o.id !== obj.id).forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.id;
+    opt.textContent = o.name + (o.assetId ? ' · ' + o.assetId : '');
+    if (o.id === obj.parentId) opt.selected = true;
+    parentSel.appendChild(opt);
+  });
+
+  // Location
+  document.getElementById('dp-f-location').value = obj.location || '';
+
+  // Description
+  document.getElementById('dp-f-desc').value = obj.desc || '';
+
+  // Metadata (read-only)
+  document.getElementById('dp-meta-id').textContent = obj.id;
+  const directKids = getChildren(obj.id);
+  document.getElementById('dp-meta-children').textContent = directKids.length || '0';
+  document.getElementById('dp-meta-descendants').textContent = getAllDescendants(obj.id).length || '0';
+
+  // Find which production line this belongs to
+  let lineNode = obj;
+  while (lineNode && lineNode.parentId) {
+    lineNode = objects.find(o => o.id === lineNode.parentId);
+  }
+  document.getElementById('dp-meta-line').textContent =
+    (lineNode && lineNode.id !== obj.id) ? lineNode.name : (obj.type === 'system' ? obj.name : '—');
+
+  // Mark dirty on any input change
+  setDetailDirty(false);
+  ['dp-f-name','dp-f-assetid','dp-f-location','dp-f-desc','dp-f-type','dp-f-parent'].forEach(id => {
+    document.getElementById(id).oninput = () => setDetailDirty(true);
+    document.getElementById(id).onchange = () => setDetailDirty(true);
+  });
+
+  // Always start in read-only mode (edit mode is set separately)
+  document.querySelectorAll('#detail-panel .detail-input').forEach(el => el.classList.add('readonly'));
+  document.getElementById('dp-status-row').classList.add('readonly');
+}
+
+function setDetailStatus(status) {
+  const obj = objects.find(o => o.id === detailObjId);
+  if (!obj) return;
+  const statuses = ['active','maintenance','offline','standby'];
+  document.getElementById('dp-status-row').innerHTML = statuses.map(s => {
+    const sc = STATUS_COLORS[s];
+    const isActive = status === s;
+    return `<div class="detail-status-chip ${isActive ? 'active-chip' : ''}"
+      style="border-color:${sc};color:${sc};background:${isActive ? sc+'22' : 'transparent'}"
+      onclick="setDetailStatus('${s}')">${s.toUpperCase()}</div>`;
+  }).join('');
+  setDetailDirty(true);
+}
+
+function getDetailStatus() {
+  const active = document.querySelector('#dp-status-row .active-chip');
+  return active ? active.textContent.toLowerCase() : 'active';
+}
+
+function setDetailDirty(dirty) {
+  detailDirty = dirty;
+  document.getElementById('dp-changed-dot').classList.toggle('visible', dirty);
+}
+
+function saveDetailChanges() {
+  const obj = objects.find(o => o.id === detailObjId);
+  if (!obj) return;
+
+  obj.name     = document.getElementById('dp-f-name').value.trim() || obj.name;
+  obj.assetId  = document.getElementById('dp-f-assetid').value.trim();
+  obj.type     = document.getElementById('dp-f-type').value;
+  obj.parentId = document.getElementById('dp-f-parent').value || null;
+  obj.location = document.getElementById('dp-f-location').value.trim();
+  obj.desc     = document.getElementById('dp-f-desc').value.trim();
+  obj.status   = getDetailStatus();
+
+  setDetailDirty(false);
+  updateStats();
+  renderTreePanel();
+
+  // Update viz in-place: card border + status dot + shadow
+  d3.selectAll('.card-body').each(function(d) {
+    if (!d || !d.data) return;
+    const isSelected = d.data.id === selectedId;
+    const lane = laneMap.get(d.data.id) || (viewMode === 'physical' ? '#f59e0b' : '#2e3d4f');
+    d3.select(this)
+      .attr('stroke', isSelected ? '#ffffff' : lane)
+      .attr('stroke-width', isSelected ? 2 : 1)
+      .attr('stroke-opacity', isSelected ? 1 : 0.5);
+  });
+
+  // Refresh status dot color for the saved object
+  d3.selectAll('.status-dot-viz').each(function(d) {
+    if (!d || !d.data || d.data.id !== obj.id) return;
+    const live = objects.find(o => o.id === d.data.id);
+    if (!live) return;
+    d.data.status = live.status;
+    d3.select(this)
+      .attr('fill', STATUS_COLORS[live.status] || '#aaa')
+      .attr('filter', live.status === 'active' ? 'url(#glow)' : '');
+  });
+
+  // Update card name and bottom label in-place for the saved object
+  const CW = 160, CH = 62;
+  d3.selectAll('.vnode').each(function(d) {
+    if (!d || !d.data || d.data.id !== obj.id) return;
+    d.data.name = obj.name;
+    d.data.assetId = obj.assetId;
+    d.data.type = obj.type;
+    const g = d3.select(this);
+
+    // Recompute wrapped name
+    const maxW = CW - 48;
+    const words = obj.name.split(' ');
+    let line1 = '', line2 = '', testLine = '', lineNum = 1;
+    words.forEach(w => {
+      testLine = testLine ? testLine + ' ' + w : w;
+      if (testLine.length * 7 > maxW && lineNum === 1) { line1 = testLine.replace(' ' + w, ''); testLine = w; lineNum = 2; }
+    });
+    if (lineNum === 1) { line1 = testLine; line2 = ''; } else { line2 = testLine; }
+    const maxChars = Math.floor(maxW / 7);
+    if (line1.length > maxChars) line1 = line1.slice(0, maxChars - 1) + '…';
+    if (line2.length > maxChars) line2 = line2.slice(0, maxChars - 1) + '…';
+    const yBase = line2 ? CH / 2 - 9 : CH / 2 - 3;
+
+    g.select('.card-name-line1').attr('y', yBase).text(line1);
+    g.select('.card-name-line2').text(line2 || '');
+    g.select('.card-bottom-label').text((obj.type || '').toUpperCase() + (obj.assetId ? ' · ' + obj.assetId : ''));
+  });
+
+  closeDetailPanel();
+}
+
+function discardDetailChanges() {
+  setDetailEditMode(false);
+  closeDetailPanel();
+}
+function buildNestedJSON() {
+  function buildNode(obj) {
+    const children = getChildren(obj.id).map(buildNode);
+    const node = {
+      id:       obj.id,
+      name:     obj.name,
+      type:     obj.type,
+      status:   obj.status,
+      assetId:  obj.assetId || null,
+      location: obj.location || null,
+      desc:     obj.desc || null,
+    };
+    if (children.length) node.children = children;
+    return node;
+  }
+
+  const roots = getRoots();
+  const allObjs = objects;
+
+  const output = {
+    exportedAt: new Date().toISOString(),
+    factory: {
+      totalObjects: allObjs.length,
+      summary: {
+        systems:    allObjs.filter(o => o.type === 'system').length,
+        stations:   allObjs.filter(o => o.type === 'station').length,
+        machines:   allObjs.filter(o => o.type === 'machine').length,
+        components: allObjs.filter(o => o.type === 'component').length,
+        sensors:    allObjs.filter(o => o.type === 'sensor').length,
+        tools:      allObjs.filter(o => o.type === 'tool').length,
+        computers:  allObjs.filter(o => o.type === 'computer').length,
+        active:      allObjs.filter(o => o.status === 'active').length,
+        maintenance: allObjs.filter(o => o.status === 'maintenance').length,
+        offline:     allObjs.filter(o => o.status === 'offline').length,
+        standby:     allObjs.filter(o => o.status === 'standby').length,
+      },
+      productionLines: roots.map(root => {
+        const desc = getAllDescendants(root.id);
+        const lineObjs = [root, ...desc];
+        return {
+          id:       root.id,
+          name:     root.name,
+          assetId:  root.assetId || null,
+          location: root.location || null,
+          status:   root.status,
+          totalObjects: lineObjs.length,
+          summary: {
+            stations:   lineObjs.filter(o => o.type === 'station').length,
+            machines:   lineObjs.filter(o => o.type === 'machine').length,
+            components: lineObjs.filter(o => o.type === 'component').length,
+            sensors:    lineObjs.filter(o => o.type === 'sensor').length,
+            tools:      lineObjs.filter(o => o.type === 'tool').length,
+            computers:  lineObjs.filter(o => o.type === 'computer').length,
+          },
+          hierarchy: buildNode(root),
+        };
+      }),
+    },
+  };
+
+  return output;
+}
+
+function exportJSON() {
+  const data = buildNestedJSON();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'factory-hierarchy-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════
+// FACTORY TOOLTIP
+// ═══════════════════════════════════════
+function getAllDescendants(rootId) {
+  const result = [];
+  (function walk(id) {
+    getChildren(id).forEach(c => { result.push(c); walk(c.id); });
+  })(rootId);
+  return result;
+}
+
+function showFactoryTT() {
+  const ft = document.getElementById('factory-tooltip');
+  const LANE_COLORS = ['#00d4ff', '#ff6b35', '#b06eff', '#39ff14'];
+  const lines = getRoots();
+
+  // Title — use a friendly factory name
+  document.getElementById('ftt-title').textContent = 'FACTORY';
+
+  // Compute factory-wide totals across all objects
+  const allObjs = objects;
+  const totals = {
+    stations:  allObjs.filter(o => o.type === 'station').length,
+    sensors:   allObjs.filter(o => o.type === 'sensor').length,
+    computers: allObjs.filter(o => o.type === 'computer').length,
+    total:     allObjs.length,
+  };
+
+  document.getElementById('ftt-totals').innerHTML = `
+    <div class="ftt-total-cell">
+      <div class="ftt-total-val" style="color:#ff6eb4">${lines.length}</div>
+      <div class="ftt-total-label">Lines</div>
+    </div>
+    <div class="ftt-total-cell">
+      <div class="ftt-total-val" style="color:#ff6eb4">${totals.stations}</div>
+      <div class="ftt-total-label">Stations</div>
+    </div>
+    <div class="ftt-total-cell">
+      <div class="ftt-total-val" style="color:#ffaa00">${totals.sensors}</div>
+      <div class="ftt-total-label">Sensors</div>
+    </div>
+    <div class="ftt-total-cell">
+      <div class="ftt-total-val" style="color:#38bdf8">${totals.computers}</div>
+      <div class="ftt-total-label">Computers</div>
+    </div>
+  `;
+
+  // Per-line breakdown
+  const linesHTML = lines.map((line, i) => {
+    const color = LANE_COLORS[i % LANE_COLORS.length];
+    const desc = getAllDescendants(line.id);
+    const all = [line, ...desc];
+    const counts = {
+      stations:   all.filter(o => o.type === 'station').length,
+      sensors:    all.filter(o => o.type === 'sensor').length,
+      components: all.filter(o => o.type === 'component').length,
+      computers:  all.filter(o => o.type === 'computer').length,
+      machines:   all.filter(o => o.type === 'machine').length,
+    };
+    const statItems = [
+      { label: 'MACH',  val: counts.machines,   color: '#ff6b35' },
+      { label: 'STA',   val: counts.stations,   color: '#ff6eb4' },
+      { label: 'COMP',  val: counts.components, color: '#39ff14' },
+      { label: 'SENS',  val: counts.sensors,    color: '#ffaa00' },
+      { label: 'CPU',   val: counts.computers,  color: '#38bdf8' },
+    ];
+    const statCells = statItems.map(s => `
+      <div class="ftt-stat">
+        <div class="ftt-stat-val" style="color:${s.color}">${s.val}</div>
+        <div class="ftt-stat-label">${s.label}</div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="ftt-line" style="border-color:${color}22">
+        <style>.ftt-line:nth-child(${i+1})::before { background: ${color}; }</style>
+        <div class="ftt-line-header">
+          <div class="ftt-line-name">${line.name}</div>
+          <div class="ftt-line-total" style="color:${color}">${desc.length + 1} OBJECTS</div>
+        </div>
+        <div class="ftt-line-stats">${statCells}</div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('ftt-lines').innerHTML = linesHTML;
+  ft.classList.add('visible');
+}
+
+function moveFTT(e) {
+  const ft = document.getElementById('factory-tooltip');
+  if (!ft.classList.contains('visible')) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  const ftW = 340, ftH = ft.offsetHeight || 320;
+  let x = e.clientX + 18, y = e.clientY - ftH / 2;
+  if (x + ftW > W - 10) x = e.clientX - ftW - 18;
+  if (y < 10) y = 10;
+  if (y + ftH > H - 10) y = H - ftH - 10;
+  ft.style.left = x + 'px';
+  ft.style.top  = y + 'px';
+}
+
+function showTT(obj) {
+  if (!obj || obj.id === '__root__' || obj.id === '__facility__') return;
+
+  // Physical location nodes (building/zone/cell) — show a simple location tooltip
+  if (viewMode === 'physical' && obj.physType && obj.physType !== 'object') {
+    const tt = document.getElementById('tooltip');
+    const physTypeColor = PHYS_COLORS[obj.physType] || '#aaa';
+    document.getElementById('tt-icon').textContent = obj.icon || '📍';
+    document.getElementById('tt-name').textContent = obj.name;
+
+    const typeBadge = document.getElementById('tt-type-badge');
+    typeBadge.textContent = obj.physType.toUpperCase();
+    typeBadge.style.background = physTypeColor + '22';
+    typeBadge.style.color = physTypeColor;
+    typeBadge.style.border = '1px solid ' + physTypeColor + '55';
+
+    const statusBadge = document.getElementById('tt-status-badge');
+    // Count objects under this location node
+    function countBelow(node) {
+      let n = 0;
+      (node.children || []).forEach(c => { if (c.physType === 'object') n++; else n += countBelow(c); });
+      return n;
+    }
+    const total = countBelow(obj);
+    statusBadge.textContent = total + ' OBJECTS';
+    statusBadge.style.background = 'rgba(255,255,255,0.06)';
+    statusBadge.style.color = 'var(--text-dim)';
+    statusBadge.style.border = '1px solid rgba(255,255,255,0.1)';
+
+    document.getElementById('tt-icon-wrap').style.borderColor = physTypeColor + '55';
+    document.getElementById('tt-icon-wrap').style.background = physTypeColor + '15';
+    document.getElementById('tt-id').textContent = '—';
+    document.getElementById('tt-loc').textContent = obj.name;
+    document.getElementById('tt-parent').textContent = '—';
+    document.getElementById('tt-children').textContent = (obj.children||[]).length + ' direct';
+    document.getElementById('tt-desc').textContent = obj.desc || '';
+    document.getElementById('tt-line-stats').style.display = 'none';
+    tt.style.borderTopColor = physTypeColor;
+    tt.style.borderTopWidth = '2px';
+    tt.classList.add('visible');
+    return;
+  }
+
+  const tt = document.getElementById('tooltip');
+
+  // Icon & header
+  document.getElementById('tt-icon').textContent = ICONS[obj.type] || '◆';
+  document.getElementById('tt-name').textContent = obj.name;
+
+  // Type badge — colored per type
+  const typeBadge = document.getElementById('tt-type-badge');
+  typeBadge.textContent = (obj.type||'').toUpperCase();
+  typeBadge.style.background = (TYPE_COLORS[obj.type]||'#aaa') + '22';
+  typeBadge.style.color = TYPE_COLORS[obj.type] || '#aaa';
+  typeBadge.style.border = '1px solid ' + (TYPE_COLORS[obj.type]||'#aaa') + '55';
+
+  // Status badge — colored per status
+  const statusBadge = document.getElementById('tt-status-badge');
+  const statusColor = STATUS_COLORS[obj.status] || '#aaa';
+  statusBadge.textContent = (obj.status||'').toUpperCase();
+  statusBadge.style.background = statusColor + '22';
+  statusBadge.style.color = statusColor;
+  statusBadge.style.border = '1px solid ' + statusColor + '55';
+
+  // Icon wrap styling
+  document.getElementById('tt-icon-wrap').style.borderColor = (TYPE_COLORS[obj.type]||'#aaa') + '55';
+  document.getElementById('tt-icon-wrap').style.background = (TYPE_COLORS[obj.type]||'#aaa') + '15';
+
+  // Grid fields
+  document.getElementById('tt-id').textContent = obj.assetId || '—';
+  document.getElementById('tt-loc').textContent = obj.location || '—';
+  const par = objects.find(o=>o.id===obj.parentId);
+  document.getElementById('tt-parent').textContent = par ? par.name : '— Root —';
+  const childCount = getChildren(obj.id).length;
+  document.getElementById('tt-children').textContent = childCount ? childCount + ' direct' : 'None';
+
+  // Description
+  document.getElementById('tt-desc').textContent = obj.desc || 'No description provided.';
+
+  // ── Production line stats section ──
+  const statsSection = document.getElementById('tt-line-stats');
+  if (obj.type === 'system') {
+    const desc = getAllDescendants(obj.id);
+    const all = [obj, ...desc];
+    const statItems = [
+      { label: 'MACH',  val: all.filter(o => o.type === 'machine').length,   color: '#ff6b35' },
+      { label: 'STA',   val: all.filter(o => o.type === 'station').length,   color: '#ff6eb4' },
+      { label: 'COMP',  val: all.filter(o => o.type === 'component').length, color: '#39ff14' },
+      { label: 'SENS',  val: all.filter(o => o.type === 'sensor').length,    color: '#ffaa00' },
+      { label: 'CPU',   val: all.filter(o => o.type === 'computer').length,  color: '#38bdf8' },
+    ];
+    document.getElementById('tt-line-stat-grid').innerHTML = statItems.map(s => `
+      <div class="tt-line-stat-cell">
+        <div class="tt-line-stat-val" style="color:${s.color}">${s.val}</div>
+        <div class="tt-line-stat-label">${s.label}</div>
+      </div>
+    `).join('');
+    statsSection.style.display = 'block';
+  } else {
+    statsSection.style.display = 'none';
+  }
+
+  // Color top border per type
+  tt.style.borderTopColor = TYPE_COLORS[obj.type] || 'var(--border-bright)';
+  tt.style.borderTopWidth = '2px';
+
+  tt.classList.add('visible');
+}
+
+function moveTT(e) {
+  moveFTT(e);
+  const tt = document.getElementById('tooltip');
+  if (!tt.classList.contains('visible')) return;
+  const W = window.innerWidth, H = window.innerHeight;
+  const ttW = 300, ttH = tt.offsetHeight || 220;
+  let x = e.clientX + 18, y = e.clientY - ttH/2;
+  if (x + ttW > W - 10) x = e.clientX - ttW - 18;
+  if (y < 10) y = 10;
+  if (y + ttH > H - 10) y = H - ttH - 10;
+  tt.style.left = x + 'px';
+  tt.style.top  = y + 'px';
+}
+
+function hideTT() {
+  document.getElementById('tooltip').classList.remove('visible');
+  document.getElementById('factory-tooltip').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+updateStats();
+renderTreePanel();
+renderViz();
+window.addEventListener('resize', renderViz);
+document.getElementById('viz-container').addEventListener('mousemove', moveTT);
+</script>
+</body>
+</html>
