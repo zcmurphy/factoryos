@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FACTORY OS — Equipment Registry</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0c0f'/><g transform='translate(16,16) rotate(45)'><rect x='-10' y='-10' width='9' height='9' fill='%2300d4ff' opacity='0.9'/><rect x='1' y='-10' width='9' height='9' fill='%2300d4ff' opacity='0.3'/><rect x='-10' y='1' width='9' height='9' fill='%2300d4ff' opacity='0.3'/><rect x='1' y='1' width='9' height='9' fill='%2300d4ff' opacity='0.9'/></g></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&family=Courier+Prime:wght@400;700&display=swap');
@@ -1111,6 +1112,9 @@
           <div class="filter-menu-item" data-filter="metrology" onclick="setFilter('metrology')">
             <span class="filter-dot" style="background:#a78bfa"></span> METROLOGY VIEW
           </div>
+          <div class="filter-menu-item" data-filter="wip" onclick="setFilter('wip')">
+            <span class="filter-dot" style="background:#34d399"></span> WIP VIEW
+          </div>
         </div>
       </div>
 
@@ -2025,6 +2029,7 @@ function isMetrology(obj) {
 function nodeMatchesFilter(obj) {
   if (filterMode === 'all') return true;
   if (filterMode === 'metrology') return isMetrology(obj);
+  if (filterMode === 'wip') return obj.type === 'station' || obj.type === 'system' || obj.id === '__root__' || obj.id === '__facility__';
   return obj.type === filterMode;
 }
 
@@ -2042,7 +2047,7 @@ function setFilter(mode) {
   });
 
   // Update button label and active style
-  const labels = { all: 'ALL', machine: 'MACHINE', sensor: 'SENSOR', computer: 'COMPUTER', metrology: 'METROLOGY' };
+  const labels = { all: 'ALL', machine: 'MACHINE', sensor: 'SENSOR', computer: 'COMPUTER', metrology: 'METROLOGY', wip: 'WIP' };
   document.getElementById('filter-label').textContent = labels[mode] || mode.toUpperCase();
   document.getElementById('filter-btn').classList.toggle('filter-active', mode !== 'all');
 
@@ -2460,6 +2465,10 @@ function saveDetailChanges() {
   obj.desc     = document.getElementById('dp-f-desc').value.trim();
   obj.status   = getDetailStatus();
 
+  // Cascade status to all descendants
+  const newStatus = obj.status;
+  getAllDescendants(obj.id).forEach(child => { child.status = newStatus; });
+
   setDetailDirty(false);
   updateStats();
   renderTreePanel();
@@ -2475,9 +2484,10 @@ function saveDetailChanges() {
       .attr('stroke-opacity', isSelected ? 1 : 0.5);
   });
 
-  // Refresh status dot color for the saved object
+  // Refresh status dots for the saved object AND all its descendants
+  const affected = new Set([obj.id, ...getAllDescendants(obj.id).map(c => c.id)]);
   d3.selectAll('.status-dot-viz').each(function(d) {
-    if (!d || !d.data || d.data.id !== obj.id) return;
+    if (!d || !d.data || !affected.has(d.data.id)) return;
     const live = objects.find(o => o.id === d.data.id);
     if (!live) return;
     d.data.status = live.status;
