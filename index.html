@@ -140,7 +140,25 @@
     font-family: 'Share Tech Mono', monospace;
   }
 
-  .header-stats { display: flex; gap: 24px; }
+  .header-stats { display: flex; gap: 24px; align-items: center; }
+  .stat-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border-bright);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+  .stat-group-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin: 0 -8px;
+    opacity: 0.5;
+  }
   .stat { text-align: right; }
   .stat-val {
     font-family: 'Share Tech Mono', monospace;
@@ -250,6 +268,95 @@
   .detail-section {
     border-bottom: 1px solid var(--border);
     padding: 12px 16px;
+  }
+  /* WIP section */
+  .wip-empty {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 1px;
+    padding: 2px 0 4px;
+  }
+  .wip-step-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .wip-parts {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .wip-part-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+  }
+  .wip-part-id {
+    color: var(--accent);
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .wip-part-name {
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wip-part-qty {
+    font-size: 9px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .wip-part-status {
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .wip-route-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    padding: 5px 8px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 3px;
+  }
+  .wip-route-step-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--accent);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .wip-route-op {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    line-height: 1.4;
+  }
+  .wip-route-op strong {
+    display: block;
+    color: var(--text);
+    font-size: 11px;
   }
   .detail-section-label {
     font-family: 'Share Tech Mono', monospace;
@@ -558,6 +665,25 @@
 
   .tree-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
   .tree-row:hover .tree-actions { opacity: 1; }
+
+  /* Eye visibility toggle — system rows only */
+  .eye-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0 3px;
+    line-height: 1;
+    opacity: 0.35;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+    color: var(--text-dim);
+  }
+  .eye-btn:hover { opacity: 0.9; }
+  .eye-btn.visible { opacity: 0.7; color: var(--accent); }
+  .eye-btn.hidden-sys { opacity: 0.9; color: var(--danger); }
+  .tree-row.sys-hidden .tree-label { opacity: 0.35; text-decoration: line-through; }
+  .tree-row.sys-hidden .tree-type-badge { opacity: 0.3; }
 
   .icon-btn {
     background: none;
@@ -1259,6 +1385,11 @@
     <div class="stat"><div class="stat-val" id="stat-active" style="color:var(--accent3)">0</div><div class="stat-label">Active</div></div>
     <div class="stat"><div class="stat-val" id="stat-maint" style="color:var(--warning)">0</div><div class="stat-label">Maint.</div></div>
     <div class="stat"><div class="stat-val" id="stat-offline" style="color:var(--danger)">0</div><div class="stat-label">Offline</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat"><div class="stat-val" id="stat-wip-total" style="color:#a78bfa">0</div><div class="stat-label">WIP Lots</div></div>
+    <div class="stat"><div class="stat-val" id="stat-wip-ontrack" style="color:#39ff14">0</div><div class="stat-label">On-Track</div></div>
+    <div class="stat"><div class="stat-val" id="stat-wip-hold" style="color:#ffaa00">0</div><div class="stat-label">On Hold</div></div>
+    <div class="stat"><div class="stat-val" id="stat-wip-priority" style="color:#00d4ff">0</div><div class="stat-label">Priority</div></div>
     <button id="theme-toggle-btn" onclick="toggleTheme()" style="
       background:none; border:1px solid var(--border-bright); color:var(--text-dim);
       font-family:'Share Tech Mono',monospace; font-size:14px; padding:4px 10px;
@@ -1396,6 +1527,12 @@
               </select>
             </div>
           </div>
+        </div>
+
+        <!-- WIP — Work in Progress at this step -->
+        <div class="detail-section" id="dp-wip-section">
+          <div class="detail-section-label">WIP — Parts at this Step</div>
+          <div id="dp-wip-content"></div>
         </div>
 
         <!-- Location -->
@@ -1669,7 +1806,8 @@ let layoutMode = 'tree';
 let viewMode = 'process';
 let filterMode = 'all';
 let laneMap = new Map();
-let expandedIds = new Set(['o1','o2','o3','o9','o10','o11','o12','b1','b2','b3','b7','b9','b10','b15','b16','b21','b22','b26','b27']);
+let expandedIds = new Set(['__factory__','o1','o2','o3','o9','o10','o11','o12','b1','b2','b3','b7','b9','b10','b15','b16','b21','b22','b26','b27']);
+let hiddenSystems = new Set(); // system IDs whose subtrees are hidden in viz
 
 const ICONS = { system:'🏭', machine:'⚙️', component:'🔩', sensor:'📡', tool:'🔧', station:'🗂️', computer:'🖥️' };
 const TYPE_COLORS = { system:'#00d4ff', machine:'#ff6b35', component:'#39ff14', sensor:'#ffaa00', tool:'#b06eff', station:'#ff6eb4', computer:'#38bdf8' };
@@ -1685,6 +1823,50 @@ function updateStats() {
   document.getElementById('stat-active').textContent = objects.filter(o=>o.status==='active').length;
   document.getElementById('stat-maint').textContent = objects.filter(o=>o.status==='maintenance').length;
   document.getElementById('stat-offline').textContent = objects.filter(o=>o.status==='offline').length;
+  updateWipStats();
+}
+
+function updateWipStats() {
+  // Guard: WIP data lives in a second script block loaded after this one
+  if (typeof PRODUCTION_ROUTE === 'undefined' || typeof WIP_BY_STATION === 'undefined' || typeof WIP_PARTS === 'undefined') return;
+
+  // Determine which station IDs are visible given hidden systems + current filter
+  const visibleStationIds = new Set();
+  PRODUCTION_ROUTE.forEach(step => {
+    const station = objects.find(o => o.id === step.stationId);
+    if (!station) return;
+    // Walk up to find root system
+    let cur = station;
+    while (cur && cur.parentId) cur = objects.find(o => o.id === cur.parentId);
+    const sysId = cur ? cur.id : null;
+    // Skip if system is hidden
+    if (sysId && hiddenSystems.has(sysId)) return;
+    // Skip if filter excludes this type
+    if (filterMode !== 'all' && !nodeMatchesFilter(station)) return;
+    visibleStationIds.add(step.stationId);
+  });
+
+  // Count parts across visible stations
+  const seen = new Set();
+  let total = 0, onTrack = 0, hold = 0, priority = 0;
+
+  visibleStationIds.forEach(sid => {
+    (WIP_BY_STATION[sid] || []).forEach(pid => {
+      if (seen.has(pid)) return; // count each lot once
+      seen.add(pid);
+      const part = WIP_PARTS.find(p => p.id === pid);
+      if (!part) return;
+      total++;
+      if (part.status === 'on-track') onTrack++;
+      else if (part.status === 'hold')  hold++;
+      else if (part.status === 'priority') priority++;
+    });
+  });
+
+  document.getElementById('stat-wip-total').textContent = total;
+  document.getElementById('stat-wip-ontrack').textContent = onTrack;
+  document.getElementById('stat-wip-hold').textContent = hold;
+  document.getElementById('stat-wip-priority').textContent = priority;
 }
 
 // ═══════════════════════════════════════
@@ -1692,6 +1874,16 @@ function updateStats() {
 // ═══════════════════════════════════════
 function getChildren(pid) { return objects.filter(o=>o.parentId===pid); }
 function getRoots() { return objects.filter(o=>!o.parentId); }
+
+// Virtual factory root — not stored in objects[], just for the tree panel
+const FACTORY_ROOT = {
+  id: '__factory__',
+  name: 'Factory',
+  type: 'system',
+  assetId: 'FAC-001',
+  status: 'active',
+  parentId: null,
+};
 
 function renderTreePanel() {
   if (viewMode === 'physical') { renderPhysicalPanel(); return; }
@@ -1704,18 +1896,74 @@ function renderTreePanel() {
     c.innerHTML = '<div class="empty-state"><div class="empty-icon">⚙</div><div>NO OBJECTS REGISTERED</div></div>';
     return;
   }
-  roots.forEach(r => c.appendChild(buildNode(r, 0)));
+  c.appendChild(buildFactoryRootNode(roots));
+}
+
+function buildFactoryRootNode(systemRoots) {
+  const expanded = expandedIds.has('__factory__');
+  const wrap = document.createElement('div');
+
+  const row = document.createElement('div');
+  row.className = 'tree-row';
+  row.style.cssText = 'padding-left:12px;background:rgba(0,212,255,0.04);border-bottom:1px solid var(--border);';
+
+  const tog = document.createElement('span');
+  tog.className = 'tree-toggle' + (expanded ? ' open' : '');
+  tog.textContent = '▶';
+  tog.onclick = e => {
+    e.stopPropagation();
+    expandedIds.has('__factory__') ? expandedIds.delete('__factory__') : expandedIds.add('__factory__');
+    renderTreePanel();
+  };
+
+  const icon = document.createElement('span');
+  icon.className = 'tree-icon';
+  icon.textContent = '🏗';
+
+  const lbl = document.createElement('span');
+  lbl.className = 'tree-label';
+  lbl.style.cssText = 'color:var(--accent);font-weight:600;letter-spacing:1px;';
+  lbl.textContent = 'Factory';
+
+  const badge = document.createElement('span');
+  badge.className = 'tree-type-badge badge-system';
+  badge.style.cssText = 'margin-left:auto;';
+  badge.textContent = 'FAC-001';
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'icon-btn';
+  addBtn.textContent = '+';
+  addBtn.title = 'Add System';
+  addBtn.style.marginLeft = '4px';
+  addBtn.onclick = e => { e.stopPropagation(); openModal('add', null); };
+
+  row.append(tog, icon, lbl, badge, addBtn);
+  row.ondblclick = e => { e.stopPropagation(); resetZoom(); };
+
+  // Auto-expand factory root if not explicitly collapsed
+  if (!expandedIds.has('__factory__') && !expandedIds.has('__factory__collapsed')) {
+    expandedIds.add('__factory__');
+  }
+
+  const childWrap = document.createElement('div');
+  childWrap.className = 'tree-children' + (expandedIds.has('__factory__') ? ' open' : '');
+  systemRoots.forEach(r => childWrap.appendChild(buildNode(r, 1)));
+
+  wrap.append(row, childWrap);
+  return wrap;
 }
 
 function buildNode(obj, depth) {
   const kids = getChildren(obj.id);
   const expanded = expandedIds.has(obj.id);
   const selected = selectedId === obj.id;
+  const isSystem = obj.type === 'system';
+  const isHidden = hiddenSystems.has(obj.id);
 
   const wrap = document.createElement('div');
 
   const row = document.createElement('div');
-  row.className = 'tree-row' + (selected ? ' selected' : '');
+  row.className = 'tree-row' + (selected ? ' selected' : '') + (isSystem && isHidden ? ' sys-hidden' : '');
   row.style.paddingLeft = (12 + depth * 18) + 'px';
 
   const tog = document.createElement('span');
@@ -1738,25 +1986,41 @@ function buildNode(obj, depth) {
   badge.className = 'tree-type-badge badge-' + obj.type;
   badge.textContent = obj.type;
 
-  const acts = document.createElement('div');
-  acts.className = 'tree-actions';
+  // Eye button — systems only
+  if (isSystem) {
+    const eye = document.createElement('button');
+    eye.className = 'eye-btn ' + (isHidden ? 'hidden-sys' : 'visible');
+    eye.title = isHidden ? 'Show in view' : 'Hide from view';
+    eye.textContent = isHidden ? '🚫' : '👁';
+    eye.onclick = e => {
+      e.stopPropagation();
+      toggleSystemVisibility(obj.id);
+    };
+    row.append(tog, icon, dot, lbl, badge, eye);
+  } else {
+    const acts = document.createElement('div');
+    acts.className = 'tree-actions';
+    const makeBtn = (txt, cls, fn) => {
+      const b = document.createElement('button');
+      b.className = 'icon-btn' + (cls ? ' ' + cls : '');
+      b.textContent = txt;
+      b.onclick = e => { e.stopPropagation(); fn(); };
+      return b;
+    };
+    acts.append(
+      makeBtn('+', '', () => openModal('add', obj.id)),
+      makeBtn('✎', '', () => openModal('edit', obj.id)),
+      makeBtn('✕', 'del', () => deleteObj(obj.id))
+    );
+    row.append(tog, icon, dot, lbl, badge, acts);
+  }
 
-  const makeBtn = (txt, cls, fn) => {
-    const b = document.createElement('button');
-    b.className = 'icon-btn' + (cls ? ' ' + cls : '');
-    b.textContent = txt;
-    b.onclick = e => { e.stopPropagation(); fn(); };
-    return b;
-  };
-  acts.append(
-    makeBtn('+', '', () => openModal('add', obj.id)),
-    makeBtn('✎', '', () => openModal('edit', obj.id)),
-    makeBtn('✕', 'del', () => deleteObj(obj.id))
-  );
-
-  row.append(tog, icon, dot, lbl, badge, acts);
   row.onclick = () => selectObj(obj.id);
-  row.ondblclick = (e) => { e.stopPropagation(); focusNodeInViz(obj.id); };
+  row.ondblclick = (e) => {
+    e.stopPropagation();
+    if (isSystem) fitSystemInViz(obj.id);
+    else focusNodeInViz(obj.id);
+  };
 
   const childWrap = document.createElement('div');
   childWrap.className = 'tree-children' + (expanded ? ' open' : '');
@@ -1764,6 +2028,65 @@ function buildNode(obj, depth) {
 
   wrap.append(row, childWrap);
   return wrap;
+}
+
+// ── System visibility toggle ──
+function toggleSystemVisibility(sysId) {
+  if (hiddenSystems.has(sysId)) hiddenSystems.delete(sysId);
+  else hiddenSystems.add(sysId);
+  renderTreePanel();
+  renderViz();
+  updateWipStats();
+}
+
+// ── Fit viz to a system and all its descendants ──
+function fitSystemInViz(sysId) {
+  if (!svgSel || !zoomBeh || !gSel) return;
+
+  const container = document.getElementById('viz-container');
+  const W = container.clientWidth, H = container.clientHeight;
+
+  // Collect all IDs in this system's subtree
+  const subtreeIds = new Set([sysId, ...getAllDescendants(sysId).map(o => o.id)]);
+
+  // Gather bounding boxes of all matching vnodes
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let found = 0;
+
+  d3.selectAll('.vnode').each(function(d) {
+    if (!d || !d.data || !subtreeIds.has(d.data.id)) return;
+    try {
+      const bbox = this.getBBox();
+      if (bbox.width === 0) return;
+      minX = Math.min(minX, bbox.x);
+      minY = Math.min(minY, bbox.y);
+      maxX = Math.max(maxX, bbox.x + bbox.width);
+      maxY = Math.max(maxY, bbox.y + bbox.height);
+      found++;
+    } catch(e) {}
+  });
+
+  if (!found) { focusNodeInViz(sysId); return; }
+
+  // Get current gSel group translate offset
+  const gTransform = gSel.attr('transform') || '';
+  const match = gTransform.match(/translate\(([^,]+),([^)]+)\)/);
+  const gTX = match ? parseFloat(match[1]) : 0;
+  const gTY = match ? parseFloat(match[2]) : 0;
+
+  const pad = 40;
+  const bboxW = maxX - minX + pad * 2;
+  const bboxH = maxY - minY + pad * 2;
+
+  const targetScale = Math.min(W / bboxW, H / bboxH, 2.5);
+  const centerX = (minX + maxX) / 2 + gTX;
+  const centerY = (minY + maxY) / 2 + gTY;
+
+  const tx = W / 2 - targetScale * centerX;
+  const ty = H / 2 - targetScale * centerY;
+
+  svgSel.transition().duration(700).ease(d3.easeCubicInOut)
+    .call(zoomBeh.transform, d3.zoomIdentity.translate(tx, ty).scale(targetScale));
 }
 
 function selectObj(id) {
@@ -1907,7 +2230,7 @@ function saveObject() {
 let svgSel, gSel, zoomBeh;
 
 function buildHierTree() {
-  const roots = getRoots();
+  const roots = getRoots().filter(r => !hiddenSystems.has(r.id));
   if (!roots.length) return null;
   function bld(obj) {
     return { ...obj, children: getChildren(obj.id).map(bld) };
@@ -2323,19 +2646,101 @@ function setFilter(mode) {
   document.getElementById('filter-btn').classList.toggle('filter-active', mode !== 'all');
 
   applyFilter();
+  updateWipStats();
 }
 
 function applyFilter() {
+  // First clean up any previous WIP badges
+  d3.selectAll('.wip-badge-g').remove();
+
   d3.selectAll('.vnode').each(function(d) {
     if (!d || !d.data) return;
     const id = d.data.id;
-    if (id === '__root__' || id === '__facility__') { d3.select(this).style('opacity', 1); return; }
-    // Physical/building location nodes always visible
-    if (d.data.physType && d.data.physType !== 'object') { d3.select(this).style('opacity', 0.9); return; }
-    // Find the real object
+    const g = d3.select(this);
+
+    if (id === '__root__' || id === '__facility__') {
+      g.style('opacity', 1);
+      g.select('.card-bottom-label').style('display', null);
+      return;
+    }
+    if (d.data.physType && d.data.physType !== 'object') {
+      g.style('opacity', 0.9);
+      g.select('.card-bottom-label').style('display', null);
+      return;
+    }
+
     const obj = objects.find(o => o.id === id) || d.data;
     const match = nodeMatchesFilter(obj);
-    d3.select(this).style('opacity', match ? 1 : 0.12);
+
+    if (filterMode === 'wip') {
+      // Matched nodes: hide type/assetId label, show WIP lot badges instead
+      g.select('.card-bottom-label').style('display', 'none');
+      g.style('opacity', match ? 1 : 0.1);
+
+      if (match && id !== '__root__' && id !== '__facility__') {
+        const wipIds   = WIP_BY_STATION[id] || [];
+        const CH = 62, CW = 160;
+
+        if (wipIds.length === 0) {
+          // No lots — show a dim "—" indicator
+          g.append('text').attr('class','wip-badge-g')
+            .attr('x', CW - 10).attr('y', CH - 10)
+            .attr('text-anchor','end')
+            .attr('dominant-baseline','middle')
+            .style('font-family','Share Tech Mono, monospace')
+            .style('font-size','8px')
+            .style('fill','#2e3d4f')
+            .attr('pointer-events','none')
+            .text('—');
+        } else {
+          // Group parts by status
+          const groups = {};
+          wipIds.forEach(pid => {
+            const part = WIP_PARTS.find(p => p.id === pid);
+            if (!part) return;
+            if (!groups[part.status]) groups[part.status] = { count: 0, color: part.color };
+            groups[part.status].count++;
+          });
+
+          const STATUS_ORDER = ['priority','on-track','hold','rework','complete','shipped'];
+          const entries = STATUS_ORDER.filter(s => groups[s]);
+
+          const BADGE_W = 22, BADGE_H = 14, GAP = 4;
+          const totalW = entries.length * BADGE_W + (entries.length - 1) * GAP;
+          let bx = CW - 8 - totalW;
+
+          entries.forEach(status => {
+            const { count, color } = groups[status];
+            const bg = d3.select(this);
+
+            const badgeG = g.append('g').attr('class','wip-badge-g')
+              .attr('transform', `translate(${bx}, ${CH - 20})`);
+
+            badgeG.append('rect')
+              .attr('width', BADGE_W).attr('height', BADGE_H).attr('rx', 3)
+              .attr('fill', color + '18')
+              .attr('stroke', color)
+              .attr('stroke-width', 1.2)
+              .attr('pointer-events','none');
+
+            badgeG.append('text')
+              .attr('x', BADGE_W / 2).attr('y', BADGE_H / 2 + 1)
+              .attr('text-anchor','middle').attr('dominant-baseline','middle')
+              .style('font-family','Share Tech Mono, monospace')
+              .style('font-size','8px').style('font-weight','bold')
+              .style('fill', color)
+              .attr('pointer-events','none')
+              .text(count);
+
+            bx += BADGE_W + GAP;
+          });
+        }
+      }
+    } else {
+      // Non-WIP filter — restore bottom label, normal opacity
+      g.select('.card-bottom-label').style('display', null);
+      g.style('opacity', match ? 1 : 0.12);
+    }
   });
 }
 
@@ -3583,6 +3988,62 @@ function populateDetailPanel(obj) {
   document.getElementById('dp-meta-line').textContent =
     (lineNode && lineNode.id !== obj.id) ? lineNode.name : (obj.type === 'system' ? obj.name : '—');
 
+  // WIP — parts at this step
+  const wipSection = document.getElementById('dp-wip-section');
+  const wipContent = document.getElementById('dp-wip-content');
+  const routeStep = PRODUCTION_ROUTE.find(s => s.stationId === obj.id);
+  const wipPartIds = WIP_BY_STATION[obj.id] || [];
+
+  if (!routeStep && !wipPartIds.length) {
+    wipSection.style.display = 'none';
+  } else {
+    wipSection.style.display = '';
+    wipContent.innerHTML = '';
+
+    if (routeStep) {
+      const routeInfo = document.createElement('div');
+      routeInfo.className = 'wip-route-info';
+      routeInfo.innerHTML = `
+        <div class="wip-route-step-num">${String(routeStep.step).padStart(2,'0')}</div>
+        <div class="wip-route-op">
+          <strong>${routeStep.operation}</strong>
+          ⏱ ${routeStep.duration} · Route Step ${routeStep.step} of ${PRODUCTION_ROUTE.length}
+        </div>
+      `;
+      wipContent.appendChild(routeInfo);
+    }
+
+    if (!wipPartIds.length) {
+      const empty = document.createElement('div');
+      empty.className = 'wip-empty';
+      empty.textContent = 'NO PARTS CURRENTLY AT THIS STEP';
+      wipContent.appendChild(empty);
+    } else {
+      const stepLbl = document.createElement('div');
+      stepLbl.className = 'wip-step-label';
+      stepLbl.textContent = `${wipPartIds.length} LOT${wipPartIds.length!==1?'S':''} IN QUEUE`;
+      wipContent.appendChild(stepLbl);
+
+      const list = document.createElement('div');
+      list.className = 'wip-parts';
+      wipPartIds.forEach(pid => {
+        const part = WIP_PARTS.find(p => p.id === pid);
+        if (!part) return;
+        const row = document.createElement('div');
+        row.className = 'wip-part-row';
+        row.style.borderLeftColor = part.color;
+        row.innerHTML = `
+          <span class="wip-part-id">${part.id}</span>
+          <span class="wip-part-name">${part.name}</span>
+          <span class="wip-part-qty">${part.qty} ${part.unit}</span>
+          <span class="wip-part-status" style="background:${part.color}18;color:${part.color};border:1px solid ${part.color}44;">${part.status.toUpperCase()}</span>
+        `;
+        list.appendChild(row);
+      });
+      wipContent.appendChild(list);
+    }
+  }
+
   // Mark dirty on any input change
   setDetailDirty(false);
   ['dp-f-name','dp-f-assetid','dp-f-location','dp-f-desc','dp-f-type','dp-f-parent'].forEach(id => {
@@ -4041,6 +4502,46 @@ document.getElementById('viz-container').addEventListener('mousemove', moveTT);
 // ═══════════════════════════════════════
 
 // The ordered route: station IDs in manufacturing sequence
+// ── WIP part definitions — parts currently in production ──
+const WIP_PARTS = [
+  { id:'WIP-0041', name:'Wafer Lot 24-0041',    qty:25,  unit:'wafers',   status:'on-track',  color:'#39ff14' },
+  { id:'WIP-0042', name:'Wafer Lot 24-0042',    qty:25,  unit:'wafers',   status:'on-track',  color:'#39ff14' },
+  { id:'WIP-0038', name:'Wafer Lot 24-0038',    qty:12,  unit:'wafers',   status:'hold',      color:'#ffaa00' },
+  { id:'WIP-0039', name:'Wafer Lot 24-0039',    qty:25,  unit:'wafers',   status:'on-track',  color:'#39ff14' },
+  { id:'WIP-0043', name:'Wafer Lot 24-0043',    qty:25,  unit:'wafers',   status:'on-track',  color:'#39ff14' },
+  { id:'WIP-0044', name:'Wafer Lot 24-0044',    qty:8,   unit:'wafers',   status:'priority',  color:'#00d4ff' },
+  { id:'PRT-1182',  name:'Shaft Assy 1182',     qty:40,  unit:'pcs',      status:'on-track',  color:'#39ff14' },
+  { id:'PRT-1183',  name:'Shaft Assy 1183',     qty:40,  unit:'pcs',      status:'on-track',  color:'#39ff14' },
+  { id:'PRT-1190',  name:'Bracket MK-7',        qty:120, unit:'pcs',      status:'on-track',  color:'#39ff14' },
+  { id:'PRT-1191',  name:'Bracket MK-7B',       qty:60,  unit:'pcs',      status:'rework',    color:'#ff3355' },
+  { id:'PRT-1195',  name:'Housing CNC-A',       qty:8,   unit:'pcs',      status:'priority',  color:'#00d4ff' },
+  { id:'PRT-1200',  name:'Pin Set 200-A',       qty:500, unit:'pcs',      status:'on-track',  color:'#39ff14' },
+  { id:'MAT-0091',  name:'SS316 Bar Stock',     qty:200, unit:'kg',       status:'on-track',  color:'#39ff14' },
+  { id:'MAT-0092',  name:'Al6061 Sheet',        qty:80,  unit:'kg',       status:'on-track',  color:'#39ff14' },
+  { id:'MAT-0093',  name:'Si Wafer Blanks',     qty:150, unit:'wafers',   status:'on-track',  color:'#39ff14' },
+  { id:'MAT-0094',  name:'Photoresist KrF',     qty:12,  unit:'liters',   status:'hold',      color:'#ffaa00' },
+  { id:'PKG-0021',  name:'Wafer Lot 24-0035',   qty:25,  unit:'wafers',   status:'complete',  color:'#b06eff' },
+  { id:'PKG-0022',  name:'Shaft Assy 1178',     qty:40,  unit:'pcs',      status:'complete',  color:'#b06eff' },
+  { id:'SHP-0088',  name:'Customer PO 4421',    qty:3,   unit:'lots',     status:'shipped',   color:'#5a7080' },
+  { id:'SHP-0089',  name:'Customer PO 4418',    qty:2,   unit:'lots',     status:'shipped',   color:'#5a7080' },
+];
+
+// Map each route step (by stationId) to which WIP parts are currently at that step
+const WIP_BY_STATION = {
+  'im2':  ['MAT-0091','MAT-0092','MAT-0093','MAT-0094'],
+  'im7':  ['MAT-0091','MAT-0092','MAT-0093'],
+  'o2':   ['PRT-1182','PRT-1190','PRT-1195'],
+  'o9':   ['PRT-1183','PRT-1191','PRT-1200'],
+  'b2':   ['WIP-0041','WIP-0042','WIP-0044'],
+  'b9':   ['WIP-0038','WIP-0039'],
+  'b15':  ['WIP-0042','WIP-0043'],
+  'b21':  ['WIP-0041'],
+  'b26':  ['WIP-0039','WIP-0044'],
+  'o11':  ['PRT-1183','WIP-0038'],
+  'sh2':  ['PKG-0021','PKG-0022'],
+  'sh7':  ['SHP-0088','SHP-0089'],
+};
+
 const PRODUCTION_ROUTE = [
   {
     stationId: 'im2',
@@ -4225,6 +4726,9 @@ function renderRoutePanel() {
 
   body.appendChild(flow);
 }
+
+// Now that WIP data is defined, populate the header WIP stats
+updateWipStats();
 </script>
 </body>
 </html>
