@@ -602,7 +602,198 @@
   }
   .viz-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text-dim); letter-spacing: 2px; flex: 1; }
 
-  /* ── Filter dropdown ── */
+  /* ── Route button in header ── */
+  #route-btn {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  #route-btn:hover, #route-btn.active {
+    background: rgba(0,212,255,0.1);
+    box-shadow: 0 0 12px rgba(0,212,255,0.3);
+  }
+  #route-btn.active { background: rgba(0,212,255,0.15); }
+
+  /* ── Route popup overlay ── */
+  #route-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 500;
+    backdrop-filter: blur(3px);
+    align-items: center;
+    justify-content: center;
+  }
+  #route-overlay.open { display: flex; }
+
+  #route-panel {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    width: 680px;
+    max-width: 95vw;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,212,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  #route-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    background: var(--surface2);
+  }
+  #route-header-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 3px;
+  }
+  #route-header-sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+  #route-close {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 18px; cursor: pointer; padding: 2px 6px;
+    transition: color 0.1s;
+  }
+  #route-close:hover { color: var(--text-bright); }
+
+  #route-body {
+    overflow-y: auto;
+    padding: 24px 28px;
+    flex: 1;
+  }
+
+  /* Route flow line */
+  .route-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .route-step {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .route-step-spine {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40px;
+    flex-shrink: 0;
+  }
+  .route-step-node {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    flex-shrink: 0;
+    z-index: 1;
+    position: relative;
+  }
+  .route-step-node.first { border-color: #39ff14; color: #39ff14; background: rgba(57,255,20,0.08); }
+  .route-step-node.last  { border-color: #ff6b35; color: #ff6b35; background: rgba(255,107,53,0.08); }
+  .route-step-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(to bottom, var(--accent), var(--border-bright));
+    opacity: 0.4;
+    min-height: 16px;
+  }
+  .route-step-line.last { opacity: 0; }
+
+  .route-step-card {
+    flex: 1;
+    margin: 0 0 16px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 16px;
+    border-left: 3px solid var(--accent);
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+  }
+  .route-step-card:hover {
+    background: rgba(0,212,255,0.04);
+    border-color: var(--border-bright);
+    border-left-color: var(--accent);
+  }
+  .route-step-card.first { border-left-color: #39ff14; }
+  .route-step-card.last  { border-left-color: #ff6b35; }
+
+  .route-step-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+  }
+  .route-step-meta {
+    display: flex;
+    gap: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    flex-wrap: wrap;
+  }
+  .route-step-meta span { display: flex; align-items: center; gap: 4px; }
+  .route-step-machines {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .route-machine-chip {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    padding: 2px 7px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8.5px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+  }
+
+  .route-legend {
+    display: flex;
+    gap: 20px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    flex-shrink: 0;
+  }
+  .route-legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; color: var(--text-dim); letter-spacing: 1px;
+  }
+  .route-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
   .filter-dropdown-wrap {
     position: relative;
   }
@@ -1058,6 +1249,11 @@
       <div class="logo-sub">Equipment Registry v2.4</div>
     </div>
   </div>
+
+  <button id="route-btn" onclick="toggleRoutePanel()" title="View manufacturing route">
+    ⬡ PRODUCTION ROUTE
+  </button>
+
   <div class="header-stats">
     <div class="stat"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Objects</div></div>
     <div class="stat"><div class="stat-val" id="stat-active" style="color:var(--accent3)">0</div><div class="stat-label">Active</div></div>
@@ -1086,7 +1282,28 @@
     <div class="viz-toolbar">
       <button class="panel-collapse-btn" id="panel-collapse-btn" onclick="toggleLeftPanel()" title="Toggle registry panel">◀</button>
       <span class="viz-label">// <span id="view-mode-label">PROCESS VIEW</span> — <span id="layout-label">TREE L→R</span></span>
-      <button class="btn" id="view-toggle-btn" onclick="toggleViewMode()">🏢 PHYSICAL VIEW</button>
+
+      <!-- View mode dropdown -->
+      <div class="filter-dropdown-wrap" id="viewmode-wrap">
+        <button class="btn filter-dropdown-btn" id="viewmode-btn" onclick="toggleViewModeMenu()">
+          ⚙ VIEW: <span id="viewmode-label">PROCESS</span>
+        </button>
+        <div class="filter-menu" id="viewmode-menu">
+          <div class="filter-menu-item active" data-vm="process" onclick="setViewMode('process')">
+            <span class="filter-dot" style="background:#00d4ff"></span> PROCESS VIEW
+          </div>
+          <div class="filter-menu-item" data-vm="physical" onclick="setViewMode('physical')">
+            <span class="filter-dot" style="background:#f59e0b"></span> PHYSICAL VIEW
+          </div>
+          <div class="filter-menu-item" data-vm="building" onclick="setViewMode('building')">
+            <span class="filter-dot" style="background:#34d399"></span> BUILDING VIEW
+          </div>
+          <div class="filter-menu-item" data-vm="custom" onclick="setViewMode('custom')">
+            <span class="filter-dot" style="background:#818cf8"></span> CUSTOM BUILDING VIEW
+          </div>
+        </div>
+      </div>
+
       <button class="btn" onclick="resetZoom()">⊕ RESET VIEW</button>
       <button class="btn" onclick="toggleLayout()">⇄ TOGGLE LAYOUT</button>
 
@@ -1413,6 +1630,38 @@ let objects = [
   { id:'c7', name:'ALD Recipe Server', type:'computer', status:'active', parentId:'b16', location:'Bay F – Pod 1, Equipment Bay', assetId:'CPU-014', desc:'Applied Materials Brooks Automation controller managing ALD cycle sequencing, precursor pulse timing, and purge steps. Logs per-wafer thickness data to the fab MES.' },
   { id:'c8', name:'CMP Endpoint Computer', type:'computer', status:'active', parentId:'b22', location:'Bay G – Pod 1, Control Cabinet', assetId:'CPU-015', desc:'Applied Materials SmartStop endpoint detection workstation. Processes eddy current and optical signals in real time to determine Cu removal endpoint within ±5Å of target.' },
   { id:'c9', name:'CD-SEM Workstation', type:'computer', status:'active', parentId:'b27', location:'Bay H – Pod 1, Instrument Desk', assetId:'CPU-016', desc:'Hitachi EM-CAL workstation running SEM Navigator software. Automates wafer recipe execution, image analysis, and CD measurement data upload to the fab yield management system.' },
+
+  // ══════════════════════════════════════════
+  // INCOMING MATERIALS SYSTEM
+  // ══════════════════════════════════════════
+  { id:'im1', name:'Incoming Materials', type:'system', status:'active', parentId:null, location:'Loading Dock – Receiving Bay', assetId:'SYS-003', desc:'Receiving, inspection, and staging system for all raw materials, wafer blanks, chemicals, and consumables entering the facility. Interfaces with ERP for purchase order validation and inventory logging.' },
+
+  { id:'im2', name:'Receiving & Inspection Station', type:'station', status:'active', parentId:'im1', location:'Loading Dock – Receiving Bay', assetId:'STA-031', desc:'Primary intake station where all inbound shipments are received, unpacked, counted, and inspected against purchase orders. Dimensional and visual inspection performed before materials are accepted into inventory.' },
+  { id:'im3', name:'Receiving Scale & Barcode Scanner', type:'machine', status:'active', parentId:'im2', location:'Loading Dock – Receiving Bay', assetId:'MCH-061', desc:'Mettler Toledo industrial floor scale (2000 kg capacity) paired with Zebra DS9900 series barcode/QR scanner. Used for weight verification and automatic PO matching via ERP integration.' },
+  { id:'im4', name:'Incoming Inspection CMM', type:'machine', status:'active', parentId:'im2', location:'Loading Dock – Receiving Bay', assetId:'MCH-062', desc:'Renishaw Equator 300 gauging system for rapid dimensional verification of incoming raw stock and purchased components. Compares measured values against CAD nominal with automated pass/fail reporting.' },
+  { id:'im5', name:'Receiving Management PC', type:'computer', status:'active', parentId:'im2', location:'Loading Dock – Receiving Bay', assetId:'CPU-021', desc:'Dell OptiPlex workstation running SAP EWM (Extended Warehouse Management). Processes goods receipts, generates material labels, assigns bin locations, and triggers quality inspection lots automatically.' },
+  { id:'im6', name:'Temperature & Humidity Sensor', type:'sensor', status:'active', parentId:'im2', location:'Loading Dock – Receiving Bay', assetId:'SNS-041', desc:'Vaisala HMT330 transmitter monitoring ambient conditions in the receiving bay. Alerts triggered if temperature or RH exceeds storage limits for sensitive chemical or wafer shipments.' },
+
+  { id:'im7', name:'Material Staging Station', type:'station', status:'active', parentId:'im1', location:'Loading Dock – Staging Area', assetId:'STA-032', desc:'Controlled staging area where accepted materials are labeled, kitted, and queued for delivery to production lines. Chemical materials handled under ventilated enclosure; wafer boxes stored in N2-purged cabinets.' },
+  { id:'im8', name:'N2 Purge Cabinet', type:'machine', status:'active', parentId:'im7', location:'Loading Dock – Staging Area', assetId:'MCH-063', desc:'Cleatech nitrogen-purged storage cabinet (humidity < 1% RH) for storing front-opening unified pods (FOUPs) and bare wafer boxes awaiting line delivery. Equipped with O2 and moisture sensors.' },
+  { id:'im9', name:'Chemical Storage Cabinet', type:'machine', status:'maintenance', parentId:'im7', location:'Loading Dock – Staging Area', assetId:'MCH-064', desc:'Justrite flammable storage cabinet with forced ventilation for photoresist, developers, and etch chemicals. Currently under maintenance for exhaust fan replacement. Expected back online within 24 hours.' },
+  { id:'im10', name:'Cabinet O2 / Moisture Sensor', type:'sensor', status:'active', parentId:'im7', location:'Loading Dock – Staging Area', assetId:'SNS-042', desc:'Alpha Moisture Systems AMS-1500 dual O2/moisture transmitter embedded in the N2 purge cabinet. Continuous monitoring with alarm relay to facility EHS system if O2 > 100 ppm or dew point > -40°C.' },
+
+  // ══════════════════════════════════════════
+  // SHIPMENT SYSTEM
+  // ══════════════════════════════════════════
+  { id:'sh1', name:'Shipment & Dispatch', type:'system', status:'active', parentId:null, location:'Loading Dock – Dispatch Bay', assetId:'SYS-004', desc:'Finished goods packaging, labeling, documentation, and outbound logistics system. Handles both wafer lot shipments to customers and internal transfer of machined components to assembly. Integrates with carrier APIs for real-time tracking.' },
+
+  { id:'sh2', name:'Finished Goods Packaging Station', type:'station', status:'active', parentId:'sh1', location:'Loading Dock – Dispatch Bay', assetId:'STA-033', desc:'Packaging and labeling station for all outbound finished goods. Wafer lots packaged in FOUP or cassette containers with N2 purge; machined parts wrapped in VCI film and boxed per customer packaging specs.' },
+  { id:'sh3', name:'Vacuum Sealer & Packer', type:'machine', status:'active', parentId:'sh2', location:'Loading Dock – Dispatch Bay', assetId:'MCH-071', desc:'Audion Packaging Machines GIANT 600 vacuum sealer for anti-static bag sealing of finished wafer products. Integrated with thermal transfer printer for lot traceability labels conforming to SEMI T7 standard.' },
+  { id:'sh4', name:'Final Verification Scale', type:'machine', status:'active', parentId:'sh2', location:'Loading Dock – Dispatch Bay', assetId:'MCH-072', desc:'Ohaus Defender 5000 checkweigher used to verify finished shipment weight matches packing list before carrier handoff. Integrated with WMS for automatic shipping document generation.' },
+  { id:'sh5', name:'Packaging Station PC', type:'computer', status:'active', parentId:'sh2', location:'Loading Dock – Dispatch Bay', assetId:'CPU-022', desc:'HP EliteDesk running SAP EWM outbound delivery module and ZPL label printing software. Generates packing slips, COAs, shipping labels, and customer-specific documentation at point of pack.' },
+  { id:'sh6', name:'Package Integrity Sensor', type:'sensor', status:'active', parentId:'sh2', location:'Loading Dock – Dispatch Bay', assetId:'SNS-051', desc:'Keyence IL-300 laser displacement sensor used for package height verification post-sealing. Detects insufficiently sealed or malformed packages before palletizing, preventing customer escapes.' },
+
+  { id:'sh7', name:'Outbound Inspection & Dispatch Station', type:'station', status:'active', parentId:'sh1', location:'Loading Dock – Dispatch Bay', assetId:'STA-034', desc:'Final outbound checkpoint where shipments are scanned, manifested, and handed off to logistics carriers. Maintains chain of custody documentation and interfaces with customer portals for advance ship notices (ASN).' },
+  { id:'sh8', name:'Pallet Jack & Dock Leveler', type:'machine', status:'active', parentId:'sh7', location:'Loading Dock – Dispatch Bay', assetId:'MCH-073', desc:'Crown PE 4500 electric pallet jack paired with Rite-Hite hydraulic dock leveler. Facilitates safe pallet transfer between facility floor and carrier trailer. RFID-tagged for utilization tracking.' },
+  { id:'sh9', name:'Dispatch Management PC', type:'computer', status:'active', parentId:'sh7', location:'Loading Dock – Dispatch Bay', assetId:'CPU-023', desc:'Workstation running carrier integration middleware (FedEx, UPS, DHL APIs) and customer EDI 856 ASN generation. Scans outbound shipments, prints carrier labels, and uploads proof-of-delivery confirmation.' },
+  { id:'sh10', name:'Dock Door Sensor Array', type:'sensor', status:'active', parentId:'sh7', location:'Loading Dock – Dispatch Bay', assetId:'SNS-052', desc:'Banner Engineering Q4X laser sensors mounted at each dock door position. Detects trailer presence and vehicle lock engagement, feeding dock status to the WMS and safety interlock system to prevent premature door opening.' },
 ];
 
 let selectedId = null;
@@ -1446,6 +1695,8 @@ function getRoots() { return objects.filter(o=>!o.parentId); }
 
 function renderTreePanel() {
   if (viewMode === 'physical') { renderPhysicalPanel(); return; }
+  if (viewMode === 'building') { renderBuildingPanel(); return; }
+  if (viewMode === 'custom')   { renderCustomBuildingPanel(); return; }
   const c = document.getElementById('tree-container');
   c.innerHTML = '';
   const roots = getRoots();
@@ -1669,11 +1920,28 @@ function buildHierTree() {
 function renderViz() {
   const container = document.getElementById('viz-container');
   const el = document.getElementById('viz-svg');
+
+  // Save zoom state before wiping the SVG
+  const savedTransform = ((viewMode === 'building' || viewMode === 'custom') && svgSel && svgSel.node())
+    ? d3.zoomTransform(svgSel.node()) : null;
+
   d3.select(el).selectAll('*').remove();
+
+  if (viewMode === 'building') {
+    renderFloorplan(container, el, savedTransform);
+    return;
+  }
+
+  if (viewMode === 'custom') {
+    renderCustomFloorplan(container, el, savedTransform);
+    return;
+  }
 
   const W = container.clientWidth, H = container.clientHeight;
 
-  const hierData = viewMode === 'physical' ? buildPhysicalD3Tree() : buildHierTree();
+  const hierData = viewMode === 'physical' ? buildPhysicalD3Tree()
+                 : viewMode === 'building' ? buildBuildingD3Tree()
+                 : buildHierTree();
   if (!hierData || !objects.length) return;
 
   svgSel = d3.select(el).attr('width', W).attr('height', H);
@@ -1765,11 +2033,14 @@ function drawHorizontal(W, H, hierData) {
   const offsetY = H/2 - (maxX+minX)/2;
   gSel.attr('transform', `translate(${padLeft}, ${offsetY})`);
 
-  // Lane colors — physical mode uses building-based amber palette, process uses production line colors
+  // Lane colors — physical/building use amber palette, process uses production line colors
   const rootChildren = root.children || [];
-  const PROCESS_LANE_COLORS = ['#00d4ff','#ff6b35','#b06eff','#39ff14'];
+  const PROCESS_LANE_COLORS  = ['#00d4ff','#ff6b35','#b06eff','#39ff14'];
   const PHYSICAL_LANE_COLORS = ['#f59e0b','#fb923c','#fbbf24','#f97316'];
-  const LANE_COLORS = viewMode === 'physical' ? PHYSICAL_LANE_COLORS : PROCESS_LANE_COLORS;
+  const BUILDING_LANE_COLORS = ['#34d399','#10b981','#6ee7b7','#059669'];
+  const LANE_COLORS = viewMode === 'physical' ? PHYSICAL_LANE_COLORS
+                    : viewMode === 'building' ? BUILDING_LANE_COLORS
+                    : PROCESS_LANE_COLORS;
 
   laneMap = new Map();
   rootChildren.forEach((child, i) => {
@@ -1786,7 +2057,7 @@ function drawHorizontal(W, H, hierData) {
     }
     return TYPE_COLORS[d.data.type] || '#aaa';
   };
-  const getLane = d => laneMap.get(d.data.id) || (viewMode === 'physical' ? '#f59e0b33' : '#2e3d4f');
+  const getLane = d => laneMap.get(d.data.id) || (viewMode === 'physical' ? '#f59e0b33' : viewMode === 'building' ? '#34d39933' : '#2e3d4f');
 
   // Subtle lane background bands
   const isMultiRoot = root.data.id === '__root__' || root.data.id === '__facility__';
@@ -1841,8 +2112,8 @@ function drawHorizontal(W, H, hierData) {
   node.append('rect').attr('class','card-body')
     .attr('width', CW).attr('height', CH).attr('rx', CR)
     .attr('fill', d => lightMode
-      ? (viewMode === 'physical' && d.data.physType !== 'object' ? '#f5f8fc' : '#ffffff')
-      : (viewMode === 'physical' && d.data.physType !== 'object' ? '#131a12' : '#12181f'))
+      ? ((viewMode === 'physical' || viewMode === 'building') && d.data.physType !== 'object' ? '#f5f8fc' : '#ffffff')
+      : ((viewMode === 'physical' || viewMode === 'building') && d.data.physType !== 'object' ? '#131a12' : '#12181f'))
     .attr('stroke', d => d.data.id===selectedId ? '#ffffff' : getLane(d))
     .attr('stroke-width', d => d.data.id===selectedId ? 2 : 1)
     .attr('stroke-opacity', d => d.data.id===selectedId ? 1 : 0.5)
@@ -2059,7 +2330,7 @@ function applyFilter() {
     if (!d || !d.data) return;
     const id = d.data.id;
     if (id === '__root__' || id === '__facility__') { d3.select(this).style('opacity', 1); return; }
-    // Physical location nodes always visible
+    // Physical/building location nodes always visible
     if (d.data.physType && d.data.physType !== 'object') { d3.select(this).style('opacity', 0.9); return; }
     // Find the real object
     const obj = objects.find(o => o.id === id) || d.data;
@@ -2068,12 +2339,12 @@ function applyFilter() {
   });
 }
 
-// Close filter menu when clicking outside
+// Close filter/viewmode menus when clicking outside
 document.addEventListener('click', e => {
   const wrap = document.getElementById('filter-wrap');
-  if (wrap && !wrap.contains(e.target)) {
-    document.getElementById('filter-menu').classList.remove('open');
-  }
+  if (wrap && !wrap.contains(e.target)) document.getElementById('filter-menu').classList.remove('open');
+  const vmWrap = document.getElementById('viewmode-wrap');
+  if (vmWrap && !vmWrap.contains(e.target)) document.getElementById('viewmode-menu').classList.remove('open');
 });
 
 function toggleLayout() {
@@ -2093,23 +2364,37 @@ const PHYS_COLORS = {
   object:   '#94a3b8',  // slate  — leaf objects
 };
 
-function toggleViewMode() {
-  viewMode = viewMode === 'process' ? 'physical' : 'process';
-  const btn = document.getElementById('view-toggle-btn');
-  const label = document.getElementById('view-mode-label');
-  if (viewMode === 'physical') {
-    btn.textContent = '⚙ PROCESS VIEW';
-    btn.classList.add('btn-active');
-    label.textContent = 'PHYSICAL VIEW';
-  } else {
-    btn.textContent = '🏢 PHYSICAL VIEW';
-    btn.classList.remove('btn-active');
-    label.textContent = 'PROCESS VIEW';
-  }
+function toggleViewModeMenu() {
+  document.getElementById('viewmode-menu').classList.toggle('open');
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  document.getElementById('viewmode-menu').classList.remove('open');
+
+  // Update menu item active states
+  document.querySelectorAll('#viewmode-menu .filter-menu-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.vm === mode);
+  });
+
+  // Update button label
+  const labels = { process: 'PROCESS', physical: 'PHYSICAL', building: 'BUILDING', custom: 'CUSTOM BLDG' };
+  document.getElementById('viewmode-label').textContent = labels[mode] || mode.toUpperCase();
+
+  // Update viz-label text
+  const modeNames = { process: 'PROCESS VIEW', physical: 'PHYSICAL VIEW', building: 'BUILDING VIEW', custom: 'CUSTOM BUILDING VIEW' };
+  document.getElementById('view-mode-label').textContent = modeNames[mode] || mode.toUpperCase();
+
+  // Highlight button when not in default process mode
+  document.getElementById('viewmode-btn').classList.toggle('filter-active', mode !== 'process');
+
   selectedId = null;
   renderTreePanel();
   renderViz();
 }
+
+// Legacy alias (kept for any internal calls)
+function toggleViewMode() { setViewMode(viewMode === 'process' ? 'physical' : 'process'); }
 
 // ── Parse a location string into [building, zone, cell] parts ──
 function parseLocation(loc) {
@@ -2299,8 +2584,889 @@ function buildPhysicalD3Tree() {
 }
 
 // ═══════════════════════════════════════
-// RIGHT DETAIL PANEL
+// BUILDING VIEW — SVG FLOORPLAN
 // ═══════════════════════════════════════
+
+// Floorplan room definitions — each room maps to location key(s) from objects
+const FLOORPLAN_ROOMS = [
+  // ── Building A — Factory Floor ──
+  {
+    id: 'bldA', label: 'BUILDING A', sublabel: 'Factory Floor',
+    x: 40, y: 40, w: 520, h: 380,
+    fill: '#0d1a2a', stroke: '#2e3d4f', strokeW: 2,
+    textColor: '#5a8aa0', isBuilding: true
+  },
+  {
+    id: 'bayA', label: 'BAY A', sublabel: 'CNC Mill Station',
+    x: 60, y: 80, w: 150, h: 150,
+    fill: '#0a1520', stroke: '#00d4ff', strokeW: 1.5,
+    textColor: '#00d4ff', locKeys: ['Bay A', 'Bay A – Cell 1', 'Bay A – Cell 1, Control Cabinet']
+  },
+  {
+    id: 'bayB', label: 'BAY B', sublabel: 'Lathe Station',
+    x: 230, y: 80, w: 150, h: 150,
+    fill: '#0a1520', stroke: '#ff6b35', strokeW: 1.5,
+    textColor: '#ff6b35', locKeys: ['Bay B', 'Bay B – Cell 2', 'Bay B – Cell 2, Control Cabinet']
+  },
+  {
+    id: 'bayC', label: 'BAY C', sublabel: 'Quality Control',
+    x: 400, y: 80, w: 140, h: 150,
+    fill: '#0a1520', stroke: '#b06eff', strokeW: 1.5,
+    textColor: '#b06eff', locKeys: ['Bay C', 'Bay C – Metrology Desk']
+  },
+  {
+    id: 'corridorA', label: 'CORRIDOR', sublabel: '',
+    x: 60, y: 250, w: 480, h: 40,
+    fill: '#080f18', stroke: '#1e2630', strokeW: 1,
+    textColor: '#2e3d4f', isPassage: true
+  },
+  {
+    id: 'utilA', label: 'UTILITIES', sublabel: 'Power & HVAC',
+    x: 60, y: 310, w: 220, h: 90,
+    fill: '#0a1218', stroke: '#1e2630', strokeW: 1,
+    textColor: '#3a5060', locKeys: []
+  },
+  {
+    id: 'officeA', label: 'CONTROL ROOM', sublabel: 'Ops & Engineering',
+    x: 300, y: 310, w: 240, h: 90,
+    fill: '#0a1218', stroke: '#1e2630', strokeW: 1,
+    textColor: '#3a5060', locKeys: ['Building A']
+  },
+
+  // ── Building B — Cleanroom ──
+  {
+    id: 'bldB', label: 'BUILDING B', sublabel: 'ISO Class 5 Cleanroom',
+    x: 600, y: 40, w: 560, h: 380,
+    fill: '#0d1a14', stroke: '#2e4f3a', strokeW: 2,
+    textColor: '#3a7a5a', isBuilding: true
+  },
+  {
+    id: 'gowning', label: 'GOWNING', sublabel: 'Entry / Airlock',
+    x: 620, y: 80, w: 80, h: 100,
+    fill: '#0a1810', stroke: '#34d399', strokeW: 1,
+    textColor: '#34d399', isPassage: true, locKeys: []
+  },
+  {
+    id: 'bayD', label: 'BAY D', sublabel: 'Photolithography',
+    x: 720, y: 80, w: 130, h: 160,
+    fill: '#091510', stroke: '#34d399', strokeW: 1.5,
+    textColor: '#34d399', locKeys: ['Bay D', 'Bay D – EUV Control Rack', 'Bay D – Pod 1', 'Bay D – Pod 2', 'Bay D – Pod 2, Control Console', 'Bay D – Clean Zone 1', 'EUV Scanner – Optical Column', 'EUV Scanner – Wafer Chuck', 'EUV Scanner – Metrology Frame', 'Coater Bowl']
+  },
+  {
+    id: 'bayE', label: 'BAY E', sublabel: 'Etch',
+    x: 870, y: 80, w: 120, h: 160,
+    fill: '#091510', stroke: '#10b981', strokeW: 1.5,
+    textColor: '#10b981', locKeys: ['Bay E', 'Bay E – Pod 1', 'Bay E – Pod 1, Rack 3', 'Bay E – Pod 2', 'Bay E – Clean Zone 2', 'Etch Chamber Wall', 'Etcher – Gas Panel', 'Etcher – Power Cabinet']
+  },
+  {
+    id: 'bayF', label: 'BAY F', sublabel: 'Deposition',
+    x: 1010, y: 80, w: 130, h: 160,
+    fill: '#091510', stroke: '#6ee7b7', strokeW: 1.5,
+    textColor: '#6ee7b7', locKeys: ['Bay F', 'Bay F – Pod 1', 'Bay F – Pod 1, Equipment Bay', 'Bay F – Pod 2', 'Bay F – Clean Zone 3', 'ALD – Process Chamber', 'ALD – Deposition Chamber', 'ALD – Chemical Cabinet', 'ATC Slot 3', 'Coolant Circuit']
+  },
+  {
+    id: 'bayG', label: 'BAY G', sublabel: 'CMP',
+    x: 720, y: 260, w: 130, h: 140,
+    fill: '#091510', stroke: '#34d399', strokeW: 1.5,
+    textColor: '#34d399', locKeys: ['Bay G', 'Bay G – Pod 1', 'Bay G – Pod 1, Control Cabinet', 'Bay G – Clean Zone 4', 'CMP – Platen', 'CMP – Platen Assembly', 'CMP – Chemical Cabinet']
+  },
+  {
+    id: 'bayH', label: 'BAY H', sublabel: 'Metrology',
+    x: 870, y: 260, w: 270, h: 140,
+    fill: '#091510', stroke: '#a78bfa', strokeW: 1.5,
+    textColor: '#a78bfa', locKeys: ['Bay H', 'Bay H – Metrology Suite', 'Bay H – Pod 1', 'Bay H – Pod 1, Instrument Desk', 'Bay H – Pod 2', 'Bay H – Pod 3', 'CD-SEM – Column']
+  },
+
+  // ── Loading Dock — Receiving (SYS-003) & Dispatch (SYS-004) ──
+  {
+    id: 'bldDock', label: 'LOADING DOCK', sublabel: 'Receiving & Dispatch',
+    x: 40, y: 440, w: 1120, h: 130,
+    fill: '#0d160f', stroke: '#2e4a30', strokeW: 2,
+    textColor: '#3a6a40', isBuilding: true
+  },
+  {
+    id: 'dockRoad', label: 'TRUCK ACCESS', sublabel: '',
+    x: 40, y: 540, w: 1120, h: 20,
+    fill: '#06100a', stroke: '#1a2e1c', strokeW: 1,
+    textColor: '#1e3020', isPassage: true, locKeys: []
+  },
+  {
+    id: 'receiving', label: 'RECEIVING', sublabel: 'Incoming Materials',
+    x: 60, y: 460, w: 240, h: 100,
+    fill: '#091510', stroke: '#22c55e', strokeW: 1.5,
+    textColor: '#22c55e',
+    locKeys: ['Loading Dock – Receiving Bay']
+  },
+  {
+    id: 'staging', label: 'STAGING', sublabel: 'Material Kitting',
+    x: 320, y: 460, w: 220, h: 100,
+    fill: '#091510', stroke: '#16a34a', strokeW: 1.5,
+    textColor: '#16a34a',
+    locKeys: ['Loading Dock – Staging Area']
+  },
+  {
+    id: 'dockMid', label: 'DOCK CORRIDOR', sublabel: '',
+    x: 560, y: 460, w: 80, h: 100,
+    fill: '#060e08', stroke: '#1a2e1c', strokeW: 1,
+    textColor: '#1e3020', isPassage: true, locKeys: []
+  },
+  {
+    id: 'packaging', label: 'PACKAGING', sublabel: 'Finished Goods',
+    x: 660, y: 460, w: 230, h: 100,
+    fill: '#100c09', stroke: '#f97316', strokeW: 1.5,
+    textColor: '#f97316',
+    locKeys: ['Loading Dock – Dispatch Bay'], filterParent: 'sh1'
+  },
+  {
+    id: 'dispatch', label: 'DISPATCH', sublabel: 'Outbound Shipment',
+    x: 910, y: 460, w: 230, h: 100,
+    fill: '#100c09', stroke: '#ea580c', strokeW: 1.5,
+    textColor: '#ea580c',
+    locKeys: ['Loading Dock – Dispatch Bay'], filterParent: 'sh1'
+  },
+];
+
+let selectedRoomId = null;
+
+function getObjectsForRoom(room) {
+  if (!room.locKeys || !room.locKeys.length) return [];
+  let matched = objects.filter(obj => {
+    if (!obj.location) return false;
+    return room.locKeys.some(k =>
+      obj.location === k ||
+      obj.location.startsWith(k + ' –') ||
+      obj.location.startsWith(k + ',') ||
+      obj.location.startsWith(k + ' ')
+    );
+  });
+  // If room is scoped to a specific system, walk up parentId chain to filter
+  if (room.filterParent) {
+    function getAncestors(id) {
+      const ids = new Set();
+      let cur = objects.find(o => o.id === id);
+      while (cur) { ids.add(cur.id); cur = objects.find(o => o.id === cur.parentId); }
+      return ids;
+    }
+    // Get all descendants of filterParent
+    function getDescendants(pid) {
+      const desc = [];
+      const queue = [pid];
+      while (queue.length) {
+        const cur = queue.shift();
+        const children = objects.filter(o => o.parentId === cur);
+        children.forEach(c => { desc.push(c.id); queue.push(c.id); });
+      }
+      return new Set(desc);
+    }
+    const allowed = getDescendants(room.filterParent);
+    matched = matched.filter(o => allowed.has(o.id));
+  }
+  return matched;
+}
+
+function renderBuildingPanel() {
+  const c = document.getElementById('tree-container');
+  c.innerHTML = '';
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'padding:10px 12px 6px;font-family:"Share Tech Mono",monospace;font-size:10px;color:var(--text-dim);letter-spacing:2px;border-bottom:1px solid var(--border);';
+  hdr.textContent = '// FLOORPLAN LEGEND';
+  c.appendChild(hdr);
+
+  const clickableRooms = FLOORPLAN_ROOMS.filter(r => !r.isBuilding && !r.isPassage);
+
+  clickableRooms.forEach(room => {
+    const roomObjs = getObjectsForRoom(room);
+    const active = roomObjs.filter(o => o.status === 'active').length;
+    const maint  = roomObjs.filter(o => o.status === 'maintenance').length;
+    const offline = roomObjs.filter(o => o.status === 'offline').length;
+
+    const row = document.createElement('div');
+    row.className = 'tree-row' + (selectedRoomId === room.id ? ' selected' : '');
+    row.style.cssText = `padding:8px 12px;cursor:pointer;border-left:2px solid ${selectedRoomId === room.id ? room.stroke : 'transparent'};`;
+
+    row.innerHTML = `
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:${room.textColor};letter-spacing:1px;">${room.label}</span>
+      <span style="font-size:9px;color:var(--text-dim);margin-left:6px;">${room.sublabel}</span>
+      <div style="margin-top:4px;display:flex;gap:8px;font-family:'Share Tech Mono',monospace;font-size:9px;">
+        <span style="color:#39ff14;">${active}✓</span>
+        <span style="color:#ffaa00;">${maint}⚠</span>
+        <span style="color:#ff3355;">${offline}✗</span>
+        <span style="color:var(--text-dim);margin-left:auto;">${roomObjs.length} obj</span>
+      </div>
+    `;
+    row.onclick = () => selectFloorplanRoom(room.id);
+    c.appendChild(row);
+
+    if (selectedRoomId === room.id && roomObjs.length) {
+      const objList = document.createElement('div');
+      objList.style.cssText = 'background:rgba(0,0,0,0.2);border-bottom:1px solid var(--border);';
+      roomObjs.forEach(obj => {
+        const orow = document.createElement('div');
+        orow.className = 'tree-row' + (selectedId === obj.id ? ' selected' : '');
+        orow.style.cssText = 'padding:5px 12px 5px 24px;';
+        orow.innerHTML = `
+          <span class="status-dot status-${obj.status}" style="margin-right:4px;"></span>
+          <span style="font-size:11px;color:${TYPE_COLORS[obj.type]||'var(--text-bright)'};">${ICONS[obj.type]||'◆'} ${obj.name}</span>
+          <span class="tree-type-badge badge-${obj.type}" style="margin-left:auto;">${obj.type}</span>
+        `;
+        orow.onclick = e => { e.stopPropagation(); selectObj(obj.id); };
+        objList.appendChild(orow);
+      });
+      c.appendChild(objList);
+    }
+  });
+}
+
+function selectFloorplanRoom(roomId) {
+  selectedRoomId = selectedRoomId === roomId ? null : roomId;
+  renderBuildingPanel();
+  // Re-render floorplan highlights without resetting zoom
+  const savedTransform = (svgSel && zoomBeh && svgSel.node())
+    ? d3.zoomTransform(svgSel.node()) : null;
+  const container = document.getElementById('viz-container');
+  const el = document.getElementById('viz-svg');
+  d3.select(el).selectAll('*').remove();
+  renderFloorplan(container, el, savedTransform);
+}
+
+function renderFloorplan(container, el, savedTransform) {
+  const W = container.clientWidth, H = container.clientHeight;
+  const dark = !lightMode;
+
+  // Compute bounding box of all rooms
+  const allX = FLOORPLAN_ROOMS.map(r => r.x + r.w);
+  const allY = FLOORPLAN_ROOMS.map(r => r.y + r.h);
+  const fpW = Math.max(...allX) + 40;
+  const fpH = Math.max(...allY) + 40;
+
+  // Scale to fit (only used for initial render — overridden by savedTransform if present)
+  const scale = Math.min((W - 40) / fpW, (H - 40) / fpH, 1);
+  const offX = (W - fpW * scale) / 2;
+  const offY = (H - fpH * scale) / 2;
+
+  const svg = d3.select(el)
+    .attr('width', W).attr('height', H)
+    .style('cursor', 'default');
+
+  svgSel = svg;
+  zoomBeh = d3.zoom().scaleExtent([0.3, 4]).on('zoom', e => gSel.attr('transform', e.transform));
+  svg.call(zoomBeh);
+
+  gSel = svg.append('g');
+
+  // Restore saved transform or apply initial fit
+  if (savedTransform) {
+    gSel.attr('transform', savedTransform);
+    svg.call(zoomBeh.transform, savedTransform);
+  } else {
+    const initTransform = d3.zoomIdentity.translate(offX, offY).scale(scale);
+    gSel.attr('transform', initTransform);
+    svg.call(zoomBeh.transform, initTransform);
+  }
+
+  // ── Defs: glow filter ──
+  const defs = svg.append('defs');
+  const glow = defs.append('filter').attr('id', 'fp-glow').attr('x', '-30%').attr('y', '-30%').attr('width', '160%').attr('height', '160%');
+  glow.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'blur');
+  const merge = glow.append('feMerge');
+  merge.append('feMergeNode').attr('in', 'blur');
+  merge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+  const bgColor = dark ? '#060a0e' : '#e8f0f8';
+  gSel.append('rect').attr('x', 0).attr('y', 0).attr('width', fpW).attr('height', fpH)
+    .attr('fill', bgColor);
+
+  // Grid
+  const gridColor = dark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,50,0.05)';
+  for (let gx = 0; gx < fpW; gx += 40) {
+    gSel.append('line').attr('x1', gx).attr('y1', 0).attr('x2', gx).attr('y2', fpH).attr('stroke', gridColor).attr('stroke-width', 0.5);
+  }
+  for (let gy = 0; gy < fpH; gy += 40) {
+    gSel.append('line').attr('x1', 0).attr('y1', gy).attr('x2', fpW).attr('y2', gy).attr('stroke', gridColor).attr('stroke-width', 0.5);
+  }
+
+  // Compass rose
+  const cx = fpW - 30, cy = 30;
+  gSel.append('text').attr('x', cx).attr('y', cy - 14).attr('text-anchor', 'middle').attr('fill', dark ? '#2e3d4f' : '#a0b0c0').attr('font-size', 8).attr('font-family', 'Share Tech Mono, monospace').text('N');
+  gSel.append('line').attr('x1', cx).attr('y1', cy).attr('x2', cx).attr('y2', cy - 10).attr('stroke', dark ? '#2e3d4f' : '#a0b0c0').attr('stroke-width', 1);
+  gSel.append('line').attr('x1', cx).attr('y1', cy).attr('x2', cx + 8).attr('y2', cy + 6).attr('stroke', dark ? '#1e2630' : '#c0d0e0').attr('stroke-width', 1);
+  gSel.append('line').attr('x1', cx).attr('y1', cy).attr('x2', cx - 8).attr('y2', cy + 6).attr('stroke', dark ? '#1e2630' : '#c0d0e0').attr('stroke-width', 1);
+
+  // Title
+  gSel.append('text').attr('x', 40).attr('y', 24)
+    .attr('font-family', 'Share Tech Mono, monospace').attr('font-size', 11)
+    .attr('fill', dark ? '#2e3d4f' : '#8090a0').attr('letter-spacing', 3)
+    .text('FACTORY FLOORPLAN — SITE MAP');
+
+  // ── Draw rooms ──
+  FLOORPLAN_ROOMS.forEach(room => {
+    const roomObjs = getObjectsForRoom(room);
+    const isSelected = selectedRoomId === room.id;
+    const isClickable = !room.isBuilding && !room.isPassage;
+
+    const g = gSel.append('g').attr('class', 'fp-room').attr('data-room', room.id);
+
+    // Light mode color adaptation
+    const fill = dark ? room.fill
+      : room.isBuilding ? '#dce8f4'
+      : room.isPassage  ? '#c8d8e8'
+      : '#eef4fa';
+
+    const stroke = isSelected
+      ? room.stroke
+      : dark ? room.stroke : room.stroke;
+    const strokeOpacity = isSelected ? 1 : room.isBuilding ? 0.4 : 0.7;
+
+    // Room rect
+    g.append('rect')
+      .attr('x', room.x).attr('y', room.y)
+      .attr('width', room.w).attr('height', room.h)
+      .attr('rx', 4).attr('ry', 4)
+      .attr('fill', fill)
+      .attr('stroke', stroke)
+      .attr('stroke-width', isSelected ? room.strokeW * 2 : room.strokeW)
+      .attr('stroke-opacity', strokeOpacity)
+      .attr('filter', isSelected ? 'url(#fp-glow)' : null)
+      .style('cursor', isClickable ? 'pointer' : 'default')
+      .on('click', () => { if (isClickable) selectFloorplanRoom(room.id); });
+
+    // Corner tick marks for non-building rooms
+    if (!room.isBuilding && !room.isPassage) {
+      const tc = isSelected ? room.stroke : (dark ? '#1e2630' : '#a0b8c8');
+      const tl = 6;
+      [[room.x, room.y], [room.x + room.w, room.y], [room.x, room.y + room.h], [room.x + room.w, room.y + room.h]].forEach(([px, py], i) => {
+        const dx = i % 2 === 0 ? 1 : -1, dy = i < 2 ? 1 : -1;
+        g.append('line').attr('x1', px).attr('y1', py).attr('x2', px + dx * tl).attr('y2', py).attr('stroke', tc).attr('stroke-width', 1);
+        g.append('line').attr('x1', px).attr('y1', py).attr('x2', px).attr('y2', py + dy * tl).attr('stroke', tc).attr('stroke-width', 1);
+      });
+    }
+
+    // Room label
+    const labelColor = dark ? room.textColor : (isSelected ? room.stroke : '#4a6070');
+    const labelY = room.isBuilding ? room.y + 16 : room.y + room.h / 2 - 10;
+    const labelX = room.isBuilding ? room.x + 10 : room.x + room.w / 2;
+    const anchor = room.isBuilding ? 'start' : 'middle';
+
+    g.append('text')
+      .attr('x', labelX).attr('y', labelY)
+      .attr('text-anchor', anchor)
+      .attr('font-family', 'Share Tech Mono, monospace')
+      .attr('font-size', room.isBuilding ? 9 : 9)
+      .attr('font-weight', isSelected ? 'bold' : 'normal')
+      .attr('fill', labelColor)
+      .attr('letter-spacing', 1.5)
+      .attr('pointer-events', 'none')
+      .text(room.label);
+
+    if (room.sublabel && !room.isBuilding) {
+      g.append('text')
+        .attr('x', room.x + room.w / 2).attr('y', room.y + room.h / 2 + 4)
+        .attr('text-anchor', 'middle')
+        .attr('font-family', 'Rajdhani, sans-serif')
+        .attr('font-size', 8).attr('fill', dark ? '#3a5060' : '#7a90a0')
+        .attr('pointer-events', 'none')
+        .text(room.sublabel);
+    }
+
+    // Object count badge
+    if (isClickable && roomObjs.length > 0) {
+      const bx = room.x + room.w - 6, by = room.y + 6;
+      const badgeColor = isSelected ? room.stroke : (dark ? '#1a2a3a' : '#c0d0e0');
+      const badgeText = dark ? room.textColor : '#4a6070';
+      g.append('circle').attr('cx', bx).attr('cy', by).attr('r', 9)
+        .attr('fill', badgeColor).attr('stroke', room.stroke).attr('stroke-width', 0.5).attr('pointer-events', 'none');
+      g.append('text').attr('x', bx).attr('y', by + 3.5)
+        .attr('text-anchor', 'middle').attr('font-family', 'Share Tech Mono, monospace')
+        .attr('font-size', 7).attr('fill', isSelected ? (dark ? '#fff' : '#000') : badgeText)
+        .attr('pointer-events', 'none').text(roomObjs.length);
+    }
+
+    // Status strip at bottom of clickable rooms
+    if (isClickable && roomObjs.length) {
+      const active  = roomObjs.filter(o => o.status === 'active').length;
+      const maint   = roomObjs.filter(o => o.status === 'maintenance').length;
+      const offline = roomObjs.filter(o => o.status === 'offline').length;
+      const total   = roomObjs.length;
+      const sw = room.w - 16, sh = 4;
+      const sx = room.x + 8, sy = room.y + room.h - 10;
+      // background bar
+      g.append('rect').attr('x', sx).attr('y', sy).attr('width', sw).attr('height', sh).attr('rx', 2).attr('fill', dark ? '#0a1218' : '#c0d0e0').attr('pointer-events', 'none');
+      let cx2 = sx;
+      [[active, '#39ff14'], [maint, '#ffaa00'], [offline, '#ff3355']].forEach(([cnt, col]) => {
+        if (cnt > 0) {
+          const segW = (cnt / total) * sw;
+          g.append('rect').attr('x', cx2).attr('y', sy).attr('width', segW).attr('height', sh).attr('rx', 1).attr('fill', col).attr('opacity', 0.8).attr('pointer-events', 'none');
+          cx2 += segW;
+        }
+      });
+    }
+
+    // Type legend: icon + count for stations, machines, components, sensors, computers
+    if (isClickable && roomObjs.length > 0) {
+      const TYPE_LEGEND = [
+        { type: 'station',   icon: ICONS.station,   color: TYPE_COLORS.station   },
+        { type: 'machine',   icon: ICONS.machine,   color: TYPE_COLORS.machine   },
+        { type: 'component', icon: ICONS.component, color: TYPE_COLORS.component },
+        { type: 'sensor',    icon: ICONS.sensor,    color: TYPE_COLORS.sensor    },
+        { type: 'computer',  icon: ICONS.computer,  color: TYPE_COLORS.computer  },
+      ];
+
+      const itemH = 13, startY = room.y + room.h - 16 - TYPE_LEGEND.length * itemH;
+      const lx = room.x + 8;
+      const dimColor = dark ? '#2a3a4a' : '#90a8b8';
+
+      TYPE_LEGEND.forEach((entry, i) => {
+        const cnt = roomObjs.filter(o => o.type === entry.type).length;
+        const iy = startY + i * itemH;
+        const hasAny = cnt > 0;
+        const alpha = hasAny ? (isSelected ? 1 : 0.7) : 0.2;
+
+        // Icon
+        g.append('text')
+          .attr('x', lx + 6).attr('y', iy + 8)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', 8)
+          .attr('opacity', alpha)
+          .attr('pointer-events', 'none')
+          .text(entry.icon);
+
+        // Count
+        g.append('text')
+          .attr('x', lx + 14).attr('y', iy + 8)
+          .attr('dominant-baseline', 'middle')
+          .attr('font-family', 'Share Tech Mono, monospace')
+          .attr('font-size', 7.5)
+          .attr('fill', hasAny ? entry.color : dimColor)
+          .attr('opacity', alpha)
+          .attr('pointer-events', 'none')
+          .text(cnt);
+      });
+    }
+  });
+
+  // ── Doorways between building A and corridor ──
+  const doorColor = dark ? '#1e2630' : '#a0b8c8';
+  [[150, 250], [305, 250], [455, 250]].forEach(([dx]) => {
+    gSel.append('rect').attr('x', dx).attr('y', 246).attr('width', 24).attr('height', 8).attr('fill', dark ? '#060a0e' : '#e8f0f8').attr('stroke', doorColor).attr('stroke-width', 0.5);
+  });
+}
+
+// ═══════════════════════════════════════
+// CUSTOM BUILDING VIEW
+// ═══════════════════════════════════════
+
+// Custom rooms: only building outlines + zone titles, no object data
+const CUSTOM_ROOMS = [
+  { id:'cbldA',   label:'BUILDING A',    sublabel:'Factory Floor',             x:40,  y:40,  w:520, h:380, stroke:'#2e3d4f', fill:'#0a0e14', textColor:'#4a7090', isBuilding:true },
+  { id:'cbldB',   label:'BUILDING B',    sublabel:'ISO Class 5 Cleanroom',     x:600, y:40,  w:560, h:380, stroke:'#2e4a3a', fill:'#09120e', textColor:'#3a6a50', isBuilding:true },
+  { id:'cbldDock',label:'LOADING DOCK',  sublabel:'Receiving & Dispatch',      x:40,  y:440, w:1120,h:130, stroke:'#3a3020', fill:'#0e0c09', textColor:'#5a5030', isBuilding:true },
+];
+
+// Draggable label state: { roomId → { x, y, text } }
+let customLabels = {};
+
+// Initialize labels to centre of each room
+function initCustomLabels() {
+  CUSTOM_ROOMS.forEach(r => {
+    if (!customLabels[r.id]) {
+      customLabels[r.id] = { x: r.x + r.w/2, y: r.y + r.h/2, text: r.sublabel };
+    }
+  });
+}
+
+// customPlacements: { roomId → [objId, ...] }
+let customPlacements = {};
+
+function renderCustomBuildingPanel() {
+  const c = document.getElementById('tree-container');
+  c.innerHTML = '';
+
+  const hdr = document.createElement('div');
+  hdr.style.cssText = 'padding:10px 12px 6px;font-family:"Share Tech Mono",monospace;font-size:10px;color:var(--text-dim);letter-spacing:2px;border-bottom:1px solid var(--border);flex-shrink:0;';
+  hdr.textContent = '// CUSTOM BUILDING VIEW';
+  c.appendChild(hdr);
+
+  const note = document.createElement('div');
+  note.style.cssText = 'padding:8px 12px;font-size:10px;color:var(--text-dim);line-height:1.55;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(0,0,0,0.15);';
+  note.innerHTML = '⟵ <b style="color:var(--text)">Drag objects</b> from the list below onto a building in the view.<br>Click a placed chip to remove it.';
+  c.appendChild(note);
+
+  // ── Per-building summary (collapsed/expand) ──
+  CUSTOM_ROOMS.forEach(r => {
+    const placed = (customPlacements[r.id] || [])
+      .map(id => objects.find(o => o.id === id)).filter(Boolean);
+
+    const section = document.createElement('div');
+    section.style.cssText = 'border-bottom:1px solid var(--border);';
+
+    const sHdr = document.createElement('div');
+    sHdr.className = 'tree-row';
+    sHdr.style.cssText = `padding:7px 12px;cursor:default;border-left:2px solid ${r.stroke};`;
+    sHdr.innerHTML = `
+      <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:${r.textColor};letter-spacing:1px;">${r.label}</span>
+      <span style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-dim);">${placed.length} obj</span>
+    `;
+    section.appendChild(sHdr);
+
+    if (placed.length) {
+      placed.forEach(obj => {
+        const orow = document.createElement('div');
+        orow.className = 'tree-row';
+        orow.style.cssText = 'padding:4px 12px 4px 24px;display:flex;align-items:center;gap:6px;';
+        orow.innerHTML = `
+          <span class="status-dot status-${obj.status}"></span>
+          <span style="font-size:10px;color:${TYPE_COLORS[obj.type]||'var(--text)'};">${ICONS[obj.type]||'◆'} ${obj.name}</span>
+          <button onclick="removeCustomPlacement('${r.id}','${obj.id}')" style="margin-left:auto;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px;padding:0 2px;" title="Remove">✕</button>
+        `;
+        section.appendChild(orow);
+      });
+    }
+
+    c.appendChild(section);
+  });
+
+  // ── Draggable object registry ──
+  const objHdr = document.createElement('div');
+  objHdr.style.cssText = 'padding:8px 12px 4px;font-family:"Share Tech Mono",monospace;font-size:9px;color:var(--text-dim);letter-spacing:2px;border-bottom:1px solid var(--border);';
+  objHdr.textContent = '// DRAG FROM REGISTRY';
+  c.appendChild(objHdr);
+
+  // Show all objects, grouped by type, as draggable rows
+  const typeOrder = ['system','station','machine','component','sensor','tool','computer'];
+  typeOrder.forEach(type => {
+    const typeObjs = objects.filter(o => o.type === type);
+    if (!typeObjs.length) return;
+
+    const typeHdr = document.createElement('div');
+    typeHdr.style.cssText = `padding:4px 12px 2px;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:${TYPE_COLORS[type]||'var(--text-dim)'};opacity:0.7;`;
+    typeHdr.textContent = type.toUpperCase();
+    c.appendChild(typeHdr);
+
+    typeObjs.forEach(obj => {
+      const row = document.createElement('div');
+      row.className = 'tree-row';
+      row.draggable = true;
+      row.dataset.objId = obj.id;
+      row.style.cssText = 'padding:4px 12px;cursor:grab;display:flex;align-items:center;gap:6px;';
+      row.innerHTML = `
+        <span style="color:var(--text-dim);font-size:10px;">⠿</span>
+        <span class="status-dot status-${obj.status}"></span>
+        <span style="font-size:10px;color:${TYPE_COLORS[obj.type]||'var(--text)'};">${ICONS[obj.type]||'◆'}</span>
+        <span style="font-size:10px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${obj.name}</span>
+      `;
+      row.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('objId', obj.id);
+        e.dataTransfer.effectAllowed = 'copy';
+        row.style.opacity = '0.4';
+      });
+      row.addEventListener('dragend', () => { row.style.opacity = '1'; });
+      c.appendChild(row);
+    });
+  });
+
+  // Reset button at bottom
+  const resetRow = document.createElement('div');
+  resetRow.style.cssText = 'padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:6px;';
+  resetRow.innerHTML = `
+    <button class="btn" onclick="resetCustomLabels()" style="flex:1;font-size:9px;">↺ RESET LABELS</button>
+    <button class="btn" onclick="clearCustomPlacements()" style="flex:1;font-size:9px;color:var(--danger);border-color:var(--danger)33;">✕ CLEAR ALL</button>
+  `;
+  c.appendChild(resetRow);
+}
+
+function removeCustomPlacement(roomId, objId) {
+  if (customPlacements[roomId]) {
+    customPlacements[roomId] = customPlacements[roomId].filter(id => id !== objId);
+  }
+  renderCustomBuildingPanel();
+  renderViz();
+}
+
+function clearCustomPlacements() {
+  customPlacements = {};
+  renderCustomBuildingPanel();
+  renderViz();
+}
+
+function addCustomPlacement(roomId, objId) {
+  if (!customPlacements[roomId]) customPlacements[roomId] = [];
+  if (!customPlacements[roomId].includes(objId)) {
+    customPlacements[roomId].push(objId);
+  }
+  renderCustomBuildingPanel();
+  renderViz();
+}
+
+function resetCustomLabels() {
+  customLabels = {};
+  initCustomLabels();
+  renderViz();
+  renderCustomBuildingPanel();
+}
+
+function renderCustomFloorplan(container, el, savedTransform) {
+  initCustomLabels();
+  const W = container.clientWidth, H = container.clientHeight;
+  const dark = !lightMode;
+
+  const allX = CUSTOM_ROOMS.map(r => r.x + r.w);
+  const allY = CUSTOM_ROOMS.map(r => r.y + r.h);
+  const fpW = Math.max(...allX) + 40;
+  const fpH = Math.max(...allY) + 40;
+
+  const scale = Math.min((W - 40) / fpW, (H - 40) / fpH, 1);
+  const offX = (W - fpW * scale) / 2;
+  const offY = (H - fpH * scale) / 2;
+
+  const svg = d3.select(el).attr('width', W).attr('height', H).style('cursor', 'default');
+  svgSel = svg;
+  zoomBeh = d3.zoom().scaleExtent([0.2, 5]).on('zoom', e => gSel.attr('transform', e.transform));
+  svg.call(zoomBeh);
+  gSel = svg.append('g');
+
+  if (savedTransform) {
+    gSel.attr('transform', savedTransform);
+    svg.call(zoomBeh.transform, savedTransform);
+  } else {
+    const t = d3.zoomIdentity.translate(offX, offY).scale(scale);
+    gSel.attr('transform', t);
+    svg.call(zoomBeh.transform, t);
+  }
+
+  // Background
+  const bgColor = dark ? '#060a0e' : '#e8f0f8';
+  gSel.append('rect').attr('width', fpW).attr('height', fpH).attr('fill', bgColor);
+
+  // Subtle grid
+  const gridColor = dark ? 'rgba(255,255,255,0.018)' : 'rgba(0,0,80,0.04)';
+  for (let gx = 0; gx < fpW; gx += 40)
+    gSel.append('line').attr('x1',gx).attr('y1',0).attr('x2',gx).attr('y2',fpH).attr('stroke',gridColor).attr('stroke-width',0.5);
+  for (let gy = 0; gy < fpH; gy += 40)
+    gSel.append('line').attr('x1',0).attr('y1',gy).attr('x2',fpW).attr('y2',gy).attr('stroke',gridColor).attr('stroke-width',0.5);
+
+  // Title
+  gSel.append('text').attr('x', 40).attr('y', 24)
+    .attr('font-family','Share Tech Mono, monospace').attr('font-size', 11)
+    .attr('fill', dark ? '#2e3d4f' : '#8090a0').attr('letter-spacing', 3)
+    .text('FACTORY FLOORPLAN — CUSTOM VIEW');
+
+  // Compass
+  const compassX = fpW - 30, compassY = 30;
+  gSel.append('text').attr('x', compassX).attr('y', compassY - 14).attr('text-anchor','middle')
+    .attr('fill', dark ? '#2e3d4f' : '#a0b0c0').attr('font-size', 8).attr('font-family','Share Tech Mono, monospace').text('N');
+  gSel.append('line').attr('x1',compassX).attr('y1',compassY).attr('x2',compassX).attr('y2',compassY-10).attr('stroke', dark ? '#2e3d4f' : '#a0b0c0').attr('stroke-width',1);
+
+  // ── Draw building outlines + drop zones ──
+  CUSTOM_ROOMS.forEach(r => {
+    const g = gSel.append('g').attr('data-room', r.id);
+    const fill = dark ? r.fill : '#e4ecf4';
+    const strokeColor = dark ? r.stroke : '#a0b8cc';
+    const placed = (customPlacements[r.id] || [])
+      .map(id => objects.find(o => o.id === id)).filter(Boolean);
+
+    // Main outline
+    const rect = g.append('rect')
+      .attr('x', r.x).attr('y', r.y)
+      .attr('width', r.w).attr('height', r.h)
+      .attr('rx', 4).attr('fill', fill)
+      .attr('stroke', strokeColor).attr('stroke-width', 1.5)
+      .attr('stroke-dasharray', '6,3')
+      .attr('stroke-opacity', 0.6);
+
+    // Corner brackets
+    const tc = dark ? r.stroke : '#a0b8cc';
+    const tl = 12;
+    [[r.x,r.y],[r.x+r.w,r.y],[r.x,r.y+r.h],[r.x+r.w,r.y+r.h]].forEach(([px,py],i) => {
+      const dx = i%2===0?1:-1, dy = i<2?1:-1;
+      g.append('line').attr('x1',px).attr('y1',py).attr('x2',px+dx*tl).attr('y2',py).attr('stroke',tc).attr('stroke-width',1.5).attr('opacity',0.8);
+      g.append('line').attr('x1',px).attr('y1',py).attr('x2',px).attr('y2',py+dy*tl).attr('stroke',tc).attr('stroke-width',1.5).attr('opacity',0.8);
+    });
+
+    // Building ID tag top-left
+    g.append('text')
+      .attr('x', r.x + 10).attr('y', r.y + 16)
+      .attr('font-family','Share Tech Mono, monospace').attr('font-size', 9)
+      .attr('fill', dark ? r.textColor : '#4a6070').attr('letter-spacing', 2)
+      .attr('opacity', 0.7)
+      .text(r.label);
+
+    // Object count badge (top-right)
+    if (placed.length > 0) {
+      const bx = r.x + r.w - 14, by = r.y + 10;
+      g.append('circle').attr('cx', bx).attr('cy', by).attr('r', 10)
+        .attr('fill', dark ? '#1a2a3a' : '#c0d0e0')
+        .attr('stroke', r.stroke).attr('stroke-width', 0.8);
+      g.append('text').attr('x', bx).attr('y', by + 4)
+        .attr('text-anchor','middle')
+        .attr('font-family','Share Tech Mono, monospace').attr('font-size', 8)
+        .attr('fill', dark ? r.textColor : '#3a5060')
+        .text(placed.length);
+    }
+
+    // Placed object chips — arranged in a wrapping grid from top-right area
+    const CHIP_W = 90, CHIP_H = 18, CHIP_GAP = 4;
+    const chipStartX = r.x + r.w - CHIP_W - 8;
+    const chipStartY = r.y + 26;
+    const maxCols = 1;
+    const maxRows = Math.floor((r.h - 36) / (CHIP_H + CHIP_GAP));
+
+    placed.slice(0, maxRows).forEach((obj, idx) => {
+      const cy = chipStartY + idx * (CHIP_H + CHIP_GAP);
+      const chipG = g.append('g').style('cursor', 'pointer');
+
+      chipG.append('rect')
+        .attr('x', chipStartX).attr('y', cy)
+        .attr('width', CHIP_W).attr('height', CHIP_H).attr('rx', 3)
+        .attr('fill', dark ? '#0d1a2a' : '#dce8f4')
+        .attr('stroke', TYPE_COLORS[obj.type] || '#2e3d4f')
+        .attr('stroke-width', 0.8);
+
+      // Status dot
+      chipG.append('circle')
+        .attr('cx', chipStartX + 7).attr('cy', cy + CHIP_H/2)
+        .attr('r', 3)
+        .attr('fill', STATUS_COLORS[obj.status] || '#5a7080');
+
+      // Type icon
+      chipG.append('text')
+        .attr('x', chipStartX + 16).attr('y', cy + CHIP_H/2 + 4)
+        .attr('font-size', 8).attr('pointer-events','none')
+        .text(ICONS[obj.type] || '◆');
+
+      // Name (truncated)
+      const maxName = 9;
+      const nameText = obj.name.length > maxName ? obj.name.slice(0, maxName) + '…' : obj.name;
+      chipG.append('text')
+        .attr('x', chipStartX + 27).attr('y', cy + CHIP_H/2 + 4)
+        .attr('font-family','Rajdhani, sans-serif').attr('font-size', 9).attr('font-weight', 600)
+        .attr('fill', dark ? '#c8d8e8' : '#2a3a4a')
+        .attr('pointer-events','none')
+        .text(nameText);
+
+      // ✕ remove button
+      chipG.append('text')
+        .attr('x', chipStartX + CHIP_W - 6).attr('y', cy + CHIP_H/2 + 4)
+        .attr('text-anchor','middle').attr('font-size', 8)
+        .attr('fill', dark ? '#ff3355' : '#cc1133').attr('opacity', 0.6)
+        .text('✕');
+
+      chipG.on('click', () => removeCustomPlacement(r.id, obj.id));
+    });
+
+    // Overflow indicator
+    if (placed.length > maxRows) {
+      g.append('text')
+        .attr('x', chipStartX + CHIP_W/2).attr('y', chipStartY + maxRows*(CHIP_H+CHIP_GAP) + 10)
+        .attr('text-anchor','middle')
+        .attr('font-family','Share Tech Mono, monospace').attr('font-size', 7.5)
+        .attr('fill', dark ? '#3a5060' : '#80a0b0')
+        .text(`+${placed.length - maxRows} more`);
+    }
+
+    // Drop zone — transparent overlay rect that receives HTML drag events via foreignObject trick
+    // We use a native SVG approach: attach dragover/drop to the SVG element and hit-test
+    rect.attr('class', 'drop-zone').attr('data-room', r.id);
+  });
+
+  // ── Draggable labels ──
+  CUSTOM_ROOMS.forEach(r => {
+    const lbl = customLabels[r.id];
+    const labelColor = dark ? '#8090a8' : '#4a6070';
+    const crossColor = dark ? '#2e3d4f' : '#b0c0d0';
+
+    const drag = d3.drag()
+      .on('start', function() { d3.select(this).raise(); })
+      .on('drag', function(event) {
+        customLabels[r.id].x = event.x;
+        customLabels[r.id].y = event.y;
+        d3.select(this).attr('transform', `translate(${event.x},${event.y})`);
+      });
+
+    const g = gSel.append('g')
+      .attr('class', 'custom-label')
+      .attr('transform', `translate(${lbl.x},${lbl.y})`)
+      .style('cursor', 'move')
+      .call(drag);
+
+    // Crosshair
+    g.append('line').attr('x1',-8).attr('y1',0).attr('x2',8).attr('y2',0).attr('stroke',crossColor).attr('stroke-width',0.8);
+    g.append('line').attr('x1',0).attr('y1',-8).attr('x2',0).attr('y2',8).attr('stroke',crossColor).attr('stroke-width',0.8);
+    g.append('circle').attr('r',2).attr('fill',crossColor).attr('opacity',0.6);
+
+    // Label text — click to rename
+    const txt = g.append('text')
+      .attr('y', 20).attr('text-anchor','middle')
+      .attr('font-family','Rajdhani, sans-serif').attr('font-size', 13)
+      .attr('font-weight', 600)
+      .attr('fill', labelColor).attr('letter-spacing', 1)
+      .style('cursor', 'text')
+      .text(lbl.text);
+
+    txt.on('click', function(event) {
+      event.stopPropagation();
+      const newName = prompt('Rename area:', lbl.text);
+      if (newName !== null && newName.trim()) {
+        customLabels[r.id].text = newName.trim();
+        txt.text(newName.trim());
+        renderCustomBuildingPanel();
+      }
+    });
+
+    // Sub-hint
+    g.append('text')
+      .attr('y', 34).attr('text-anchor','middle')
+      .attr('font-family','Share Tech Mono, monospace').attr('font-size', 7.5)
+      .attr('fill', dark ? '#2e3d4f' : '#90a8b8').attr('letter-spacing', 1)
+      .attr('pointer-events','none')
+      .text('drag to move · click to rename');
+  });
+
+  // ── SVG drop zone: intercept HTML5 drag events on the SVG element ──
+  const svgEl = el;
+
+  svgEl.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+
+    // Highlight the room under cursor
+    const pt = svgCoords(svgEl, e);
+    d3.selectAll('.drop-zone').each(function() {
+      const r = CUSTOM_ROOMS.find(r => r.id === this.dataset.room);
+      if (!r) return;
+      const over = pt.x >= r.x && pt.x <= r.x+r.w && pt.y >= r.y && pt.y <= r.y+r.h;
+      d3.select(this).attr('stroke-opacity', over ? 1 : 0.6).attr('stroke-width', over ? 3 : 1.5);
+    });
+  });
+
+  svgEl.addEventListener('dragleave', () => {
+    d3.selectAll('.drop-zone').attr('stroke-opacity', 0.6).attr('stroke-width', 1.5);
+  });
+
+  svgEl.addEventListener('drop', e => {
+    e.preventDefault();
+    d3.selectAll('.drop-zone').attr('stroke-opacity', 0.6).attr('stroke-width', 1.5);
+    const objId = e.dataTransfer.getData('objId');
+    if (!objId) return;
+
+    const pt = svgCoords(svgEl, e);
+    const hit = CUSTOM_ROOMS.find(r => pt.x >= r.x && pt.x <= r.x+r.w && pt.y >= r.y && pt.y <= r.y+r.h);
+    if (hit) addCustomPlacement(hit.id, objId);
+  });
+}
+
+// Convert page coords to SVG canvas coords (accounts for zoom/pan transform)
+function svgCoords(svgEl, e) {
+  const rect = svgEl.getBoundingClientRect();
+  const rawX = e.clientX - rect.left;
+  const rawY = e.clientY - rect.top;
+  // gSel has a transform — invert it
+  if (!gSel) return { x: rawX, y: rawY };
+  const t = d3.zoomTransform(svgEl);
+  return { x: (rawX - t.x) / t.k, y: (rawY - t.y) / t.k };
+}
+
 let detailObjId = null;
 let detailDirty = false;
 let detailEditMode = false;
@@ -2846,6 +4012,219 @@ renderTreePanel();
 renderViz();
 window.addEventListener('resize', renderViz);
 document.getElementById('viz-container').addEventListener('mousemove', moveTT);
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     PRODUCTION ROUTE OVERLAY
+══════════════════════════════════════════════════════ -->
+<div id="route-overlay" onclick="handleRouteOverlayClick(event)">
+  <div id="route-panel">
+    <div id="route-header">
+      <div>
+        <div id="route-header-title">⬡ PRODUCTION ROUTE</div>
+        <div id="route-header-sub">Standard manufacturing sequence — all part families</div>
+      </div>
+      <button id="route-close" onclick="toggleRoutePanel()">✕</button>
+    </div>
+    <div id="route-body"></div>
+    <div class="route-legend">
+      <div class="route-legend-item"><div class="route-legend-dot" style="background:#39ff14"></div> START</div>
+      <div class="route-legend-item"><div class="route-legend-dot" style="background:#00d4ff"></div> PROCESS</div>
+      <div class="route-legend-item"><div class="route-legend-dot" style="background:#ff6b35"></div> END</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// PRODUCTION ROUTE
+// ═══════════════════════════════════════
+
+// The ordered route: station IDs in manufacturing sequence
+const PRODUCTION_ROUTE = [
+  {
+    stationId: 'im2',
+    step: 1,
+    operation: 'Receiving & Incoming Inspection',
+    duration: '30 min',
+    notes: 'All raw materials, wafer blanks, and chemicals are received, weighed, scanned, and dimensionally verified before being accepted into inventory and staged for production.',
+  },
+  {
+    stationId: 'im7',
+    step: 2,
+    operation: 'Material Staging & Kitting',
+    duration: '20 min',
+    notes: 'Accepted materials are labeled, kitted per job traveler, and queued for delivery to the appropriate production line. Wafer FOUPs loaded into N2 purge cabinets until consumed.',
+  },
+  {
+    stationId: 'o2',
+    step: 3,
+    operation: 'Raw Material Prep & Milling',
+    duration: '45 min',
+    notes: 'Initial stock removal, face milling, datum feature creation. All parts begin here.',
+  },
+  {
+    stationId: 'o9',
+    step: 4,
+    operation: 'Turning & Threading',
+    duration: '30 min',
+    notes: 'CNC lathe operations: OD/ID turning, grooving, and thread cutting to print spec.',
+  },
+  {
+    stationId: 'b2',
+    step: 5,
+    operation: 'Photolithography & Patterning',
+    duration: '2 hr',
+    notes: 'EUV exposure and photoresist coating to define circuit patterns on wafer surface.',
+  },
+  {
+    stationId: 'b9',
+    step: 6,
+    operation: 'Plasma Etch',
+    duration: '1.5 hr',
+    notes: 'ICP-RIE etch transfers pattern into substrate. Critical dimension control required.',
+  },
+  {
+    stationId: 'b15',
+    step: 7,
+    operation: 'Thin Film Deposition',
+    duration: '3 hr',
+    notes: 'ALD and PVD processes deposit dielectric and metallic layers per stack specification.',
+  },
+  {
+    stationId: 'b21',
+    step: 8,
+    operation: 'Chemical-Mechanical Planarization',
+    duration: '1 hr',
+    notes: 'CMP planarizes wafer surface to target thickness. Slurry endpoint detection active.',
+  },
+  {
+    stationId: 'b26',
+    step: 9,
+    operation: 'Metrology & Inspection',
+    duration: '45 min',
+    notes: 'CD-SEM, ellipsometry, and defect scans. Parts failing spec are routed back to etch.',
+  },
+  {
+    stationId: 'o11',
+    step: 10,
+    operation: 'Final Quality Control',
+    duration: '20 min',
+    notes: 'CMM dimensional verification, surface finish check, and release to shipping.',
+  },
+  {
+    stationId: 'sh2',
+    step: 11,
+    operation: 'Finished Goods Packaging',
+    duration: '15 min',
+    notes: 'Released parts vacuum-sealed, labeled per SEMI T7 / customer spec, and packed with COA and traceability documentation.',
+  },
+  {
+    stationId: 'sh7',
+    step: 12,
+    operation: 'Outbound Inspection & Dispatch',
+    duration: '10 min',
+    notes: 'Final weight verification, carrier scan, ASN transmission to customer portal, and handoff to logistics. Chain of custody record closed.',
+  },
+];
+
+function toggleRoutePanel() {
+  const overlay = document.getElementById('route-overlay');
+  const btn = document.getElementById('route-btn');
+  const isOpen = overlay.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+  if (isOpen) renderRoutePanel();
+}
+
+function handleRouteOverlayClick(e) {
+  if (e.target === document.getElementById('route-overlay')) toggleRoutePanel();
+}
+
+function renderRoutePanel() {
+  const body = document.getElementById('route-body');
+  body.innerHTML = '';
+
+  const flow = document.createElement('div');
+  flow.className = 'route-flow';
+
+  PRODUCTION_ROUTE.forEach((step, idx) => {
+    const station = objects.find(o => o.id === step.stationId);
+    const isFirst = idx === 0;
+    const isLast  = idx === PRODUCTION_ROUTE.length - 1;
+    const stColor = isFirst ? '#39ff14' : isLast ? '#ff6b35' : '#00d4ff';
+
+    // Get child machines/components of this station
+    const children = objects.filter(o => o.parentId === step.stationId);
+    const machines  = children.filter(o => o.type === 'machine');
+    const sensors   = children.filter(o => o.type === 'sensor');
+    const computers = children.filter(o => o.type === 'computer');
+
+    const stepEl = document.createElement('div');
+    stepEl.className = 'route-step';
+
+    const spine = document.createElement('div');
+    spine.className = 'route-step-spine';
+
+    const node = document.createElement('div');
+    node.className = 'route-step-node' + (isFirst ? ' first' : isLast ? ' last' : '');
+    node.style.borderColor = stColor;
+    node.style.color = stColor;
+    node.textContent = String(step.step).padStart(2, '0');
+
+    const line = document.createElement('div');
+    line.className = 'route-step-line' + (isLast ? ' last' : '');
+    if (!isLast) line.style.background = `linear-gradient(to bottom, ${stColor}66, #2e3d4f44)`;
+
+    spine.append(node, line);
+
+    const card = document.createElement('div');
+    card.className = 'route-step-card' + (isFirst ? ' first' : isLast ? ' last' : '');
+    card.style.borderLeftColor = stColor;
+
+    const statusColor = station ? STATUS_COLORS[station.status] || '#aaa' : '#aaa';
+
+    card.innerHTML = `
+      <div class="route-step-name">
+        ${station ? (ICONS[station.type] || '🗂️') : '🗂️'} ${station ? station.name : step.stationId}
+        <span style="font-size:10px;font-weight:400;color:${statusColor};margin-left:8px;font-family:'Share Tech Mono',monospace;">
+          ● ${station ? station.status.toUpperCase() : 'UNKNOWN'}
+        </span>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-family:Rajdhani,sans-serif;">
+        ${step.operation}
+      </div>
+      <div class="route-step-meta">
+        <span>⏱ ${step.duration}</span>
+        ${station ? `<span>📍 ${station.location || '—'}</span>` : ''}
+        ${station ? `<span>ID: ${station.assetId || station.id}</span>` : ''}
+        <span>⚙ ${machines.length} machines</span>
+        <span>📡 ${sensors.length} sensors</span>
+        <span>🖥 ${computers.length} computers</span>
+      </div>
+      ${machines.length ? `<div class="route-step-machines">${machines.map(m =>
+        `<span class="route-machine-chip">${ICONS[m.type] || '⚙'} ${m.name}</span>`
+      ).join('')}</div>` : ''}
+      <div style="margin-top:8px;font-size:10px;color:var(--text-dim);font-style:italic;line-height:1.5;">
+        ${step.notes}
+      </div>
+    `;
+
+    // Click card → select station in viz
+    card.onclick = () => {
+      if (station) {
+        toggleRoutePanel();
+        // Switch to process view if not already
+        if (viewMode !== 'process') setViewMode('process');
+        setTimeout(() => { selectObj(station.id); focusNodeInViz(station.id); }, 100);
+      }
+    };
+
+    stepEl.append(spine, card);
+    flow.appendChild(stepEl);
+  });
+
+  body.appendChild(flow);
+}
 </script>
 </body>
 </html>
